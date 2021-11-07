@@ -1,0 +1,76 @@
+<project name="BPP Impl" default="usage" basedir=".">
+
+  <!-- Initializations -->
+  <target name="init">    
+    <echo message="------------ Building BPP Implementation ----------"/>
+    <echo message=""/>
+    <property name="sources" value="${basedir}"/>
+    <property name="classes" value="./classes"/>
+    <property name="external.jars" value="" />
+    <property name="api" value="./docs"/>    
+    <property name="year" value="2021"/>
+    <property name="jars" value="${basedir}"/>
+    <property name="release" value="0.1" />
+  </target>
+
+  <!-- Build -->
+  <target name="build" depends="init">
+    <echo message="------ Compiling application"/>
+    <mkdir dir="${classes}"/>
+    <javac debug="on" srcdir="${sources}" classpath="${external.jars}" destdir="${classes}">
+      <include name="cc/clayman/**" />
+      <include name="test/**" />
+
+      <!--<compilerarg value="-Xlint:unchecked" />--> 
+      <!--<compilerarg value="-verbose" /> -->
+      <!--<compilerarg value="-Xlint:deprecation" />-->
+    </javac>
+
+  </target>
+
+  <!-- Archive -->
+  <target name="dist" depends="build">
+    <echo message="------ Building Jar file"/>
+    <!-- only classes -->
+    <jar jarfile="${jars}/bpp-impl-${release}.jar" basedir="classes"
+         includes="cc/**, test/**" />
+    <!-- add src -->
+    <jar update="true" jarfile="${jars}/bpp-impl-${release}.jar" basedir="${basedir}" includes="cc/clayman/**, test/**" excludes="**/*.class" />
+
+    <jar jarfile="${jars}/bpp-impl-bin-${release}.jar" basedir="classes" includes="cc/**,test/**" excludes="**/*.java" />
+    <jar jarfile="${jars}/bpp-impl-src-${release}.jar" basedir="${basedir}/src" includes="cc/clayman/**,test/**" excludes="**/*.class" />
+  </target>
+
+  <!-- JavaDoc -->
+  <target name="javadoc" depends="build">
+     <echo message="------ Running JavaDoc"/>
+     <javadoc packagenames="cc.clayman.*"
+              sourcepath="${sources}"
+              destdir="${api}"
+	      classpath="${external.jars}"
+              bottom="BPP Implementation ${release}"
+              author="false">
+      <classpath>
+        <pathelement location="${classes}"/>
+      </classpath>
+     </javadoc>
+  </target>
+
+  <!-- ALL -->
+  <target name="all" depends="dist, javadoc">
+  </target>
+
+  <!-- Usage -->
+  <target name="usage">
+     <echo message="*** BPP Implementation ANT build script ***"/>
+     <echo message="Usage : "/>
+     <echo message="   ant [target]"/>
+     <echo message=""/>     
+     <echo message="   target : "/>     
+     <echo message="            build : Build Application"/>     
+     <echo message="            dist  : Build Application + Archive (JAR)"/>     
+     <echo message="            javadoc  : Build Application + Javadoc"/>     
+     <echo message="            all   : Build Application + Archive + JavaDoc"/>       
+  </target>
+       
+</project>
