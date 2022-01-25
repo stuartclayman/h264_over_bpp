@@ -21,7 +21,7 @@ Very Lightweight Network & Service Platform.
 **net**  BPP packetizing and UDP netowrking\
 **processor**  NALs --> chunks and chunks --> NALs\
 **terminal**  Terminal output functions\
-**util** Util functions\
+**util** Util functions
 
 
 ## Useful interations
@@ -37,7 +37,7 @@ UDPSend  -->   UDPListen   _Outputs data from UDP packets into a file_
 
 ## Usage
 
-All apps execute from the entry package: cc.clayman.app\
+All apps execute from the entry package: cc.clayman.app
 
 
 
@@ -50,7 +50,7 @@ Some examples, plus arguments.
  H264Parse [-q] [-f filename]\
  _Print out details of an H264 file, as NALs_\
 **-f** filename Read data from file.  Use - for stdin.  Default: stdin\
-**-q** Print qualityLayer info.  Default: false\
+**-q** Print qualityLayer info.  Default: false
 
 
 
@@ -59,7 +59,7 @@ Some examples, plus arguments.
 BPPListen [-p port] [-c cols]\
 _Listen for BPP packets_\
 **-p** port Listen port.  Default: 6799\
-**-c** cols No of columns for output.  Default: 80\
+**-c** cols No of columns for output.  Default: 80
 
 
 `java cc.clayman.app.H264Listen  -f ~/tmp/sc_0.6mbps.264 -q -p 6798`
@@ -68,7 +68,7 @@ H264Listen [-f filename] [-p port] [-q]\
 _Listen for BPP packets and construct an H264 file_\
 **-f** filename Send data to file.  Use - for stdout.  Default: stdout\
 **-p** port Listen port.  Default: 6799\
-**-q** Print qualityLayer info.  Default: false\
+**-q** Print qualityLayer info.  Default: false
 
 
 `java cc.clayman.app.BPPSend -f filename`
@@ -85,7 +85,7 @@ _Send a video file over BPP_\
 **-Pe** Even packing strategy.  Default: EvenSplit\
 **-Pd** Dynamic packing strategy\
 **-Pi** In Order packing strategy\
-**-Pf** In Order Fully packed packing strategy\
+**-Pf** In Order Fully packed packing strategy
 
 
 `java cc.clayman.app.UDPListen -p 6798`
@@ -94,7 +94,7 @@ UDPListen [-f filename] [-p port]\
 _Listen for UDP packets_\
 **-f** filename Send data to file.  No Default\
 **-p** port Listen port.  Default: 6799\
-**-c** cols No of columns for output.  Default: 80\
+**-c** cols No of columns for output.  Default: 80
 
 
 `java cc.clayman.app.UDPSend  -f filename`
@@ -105,7 +105,7 @@ _Send a video file over UDP_\
 **-f** filename Read data from file.  Use - for stdin.  Default: stdin\
 **-p** port Send port.  Default: 6799\
 **-z** Packet size.  Default: 1500\
-**-c** cols No of columns for output.  Default: 80\
+**-c** cols No of columns for output.  Default: 80
 
 
 
