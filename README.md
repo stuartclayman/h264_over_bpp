@@ -1,7 +1,36 @@
+## Info
+
+This contains java code to read H264 files, and send them using the
+BPP packet format.
+The receiver can print data or reconstruct a valid H264 stream to
+save.
+
+These programs can be used with an external virtualisation platform
+which can enact BPP behaviours to drop chunks under certain network
+conditions.
+Examples include: [VLSP](https://github.com/stuartclayman/VLSP) The
+Very Lightweight Network & Service Platform.\
+
+
+### Packages
+
+**app**  Application entry points
+**bpp**  BPP definitions
+**chunk**  Chunk processing
+**h264**  H264 definitions, parsing NALs, and input stream
+**net**  BPP packetizing and UDP netowrking
+**processor**  NALs --> chunks and chunks --> NALs
+**terminal**  Terminal output functions
+**util** Util functions
+
 ## Usage
 
-Entry package cc.clayman.app
+All apps execute from the entry package: cc.clayman.app\
 
+
+
+
+Some examples, plus arguments.
 
 
 `java cc.clayman.app.H264Parse -f ~/tmp/foreman.264`
@@ -30,7 +59,7 @@ _Listen for BPP packets and construct an H264 file_\
 **-q** Print qualityLayer info.  Default: false\
 
 
-`java cc.clayman.app.BPPSend  filename`
+`java cc.clayman.app.BPPSend -f filename`
 
 BPPSend [-s sleep|-r rate] [-f filename] [-p port]  [-z packetSize] [-Pe|-Pd|-Pi|-Pf]\
 _Send a video file over BPP_\
