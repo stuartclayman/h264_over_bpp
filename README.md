@@ -8,8 +8,8 @@ Entry package cc.clayman.app
 
  H264Parse [-q] [-f filename]\
  _Print out details of an H264 file, as NALs_\
--f filename Read data from file.  Use - for stdin.  Default: stdin\
--q Print qualityLayer info.  Default: false\
+**-f** filename Read data from file.  Use - for stdin.  Default: stdin\
+**-q** Print qualityLayer info.  Default: false\
 
 
 
@@ -17,54 +17,54 @@ Entry package cc.clayman.app
 
 BPPListen [-p port] [-c cols]\
 _Listen for BPP packets_\
--p port Listen port.  Default: 6799\
--c cols No of columns for output.  Default: 80\
+**-p** port Listen port.  Default: 6799\
+**-c** cols No of columns for output.  Default: 80\
 
 
 `java cc.clayman.app.H264Listen  -f ~/tmp/sc_0.6mbps.264 -q -p 6798`
 
 H264Listen [-f filename] [-p port] [-q]\
 _Listen for BPP packets and construct an H264 file_\
--f filename Send data to file.  Use - for stdout.  Default: stdout\
--p port Listen port.  Default: 6799\
--q Print qualityLayer info.  Default: false\
+**-f** filename Send data to file.  Use - for stdout.  Default: stdout\
+**-p** port Listen port.  Default: 6799\
+**-q** Print qualityLayer info.  Default: false\
 
 
 `java cc.clayman.app.BPPSend  filename`
 
-BPPSend [-Pe|-Pd|-Pi|-Pf] [-s sleep|-r rate] [-f filename] [-p port]  [-z packetSize]\
+BPPSend [-s sleep|-r rate] [-f filename] [-p port]  [-z packetSize] [-Pe|-Pd|-Pi|-Pf]\
 _Send a video file over BPP_\
--f filename Read data from file.  Use - for stdin.  Default: stdin\
--p port Send port.  Default: 6799\
--z Packet size.  Default: 1500\
--Pe Even packing strategy.  Default: EvenSplit\
--Pd Dynamic packing strategy\
--Pi In Order packing strategy\
--Pf In Order Fully packed packing strategy\
--r rate No of packets per second\
--s inter packet sleep (in milliseconds).  Default: 7\
--a Do adaptive sleep.  Based on chunk size and packet size.  Default: false\
--c cols No of columns for output.  Default: 80\
+**-f** filename Read data from file.  Use - for stdin.  Default: stdin\
+**-p** port Send port.  Default: 6799\
+**-z** Packet size.  Default: 1500\
+**-r** rate No of packets per second\
+**-s** inter packet sleep (in milliseconds).  Default: 7\
+**-a** Do adaptive sleep.  Based on chunk size and packet size.  Default: false\
+**-c** cols No of columns for output.  Default: 80\
+**-Pe** Even packing strategy.  Default: EvenSplit\
+**-Pd** Dynamic packing strategy\
+**-Pi** In Order packing strategy\
+**-Pf** In Order Fully packed packing strategy\
 
 
 `java cc.clayman.app.UDPListen -p 6798`
 
 UDPListen [-f filename] [-p port]\
 _Listen for UDP packets_\
--f filename Send data to file.  No Default\
--p port Listen port.  Default: 6799\
--c cols No of columns for output.  Default: 80\
+**-f** filename Send data to file.  No Default\
+**-p** port Listen port.  Default: 6799\
+**-c** cols No of columns for output.  Default: 80\
 
 
 `java cc.clayman.app.UDPSend  -f filename`
 
 UDPSend [-s sleep] [-f filename] [-p port] [-z packetSize]\
 _Send a video file over UDP_\
--s inter packet sleep (in milliseconds).  Default: 7\
--f filename Read data from file.  Use - for stdin.  Default: stdin\
--p port Send port.  Default: 6799\
--z Packet size.  Default: 1500\
--c cols No of columns for output.  Default: 80\
+**-s** inter packet sleep (in milliseconds).  Default: 7\
+**-f** filename Read data from file.  Use - for stdin.  Default: stdin\
+**-p** port Send port.  Default: 6799\
+**-z** Packet size.  Default: 1500\
+**-c** cols No of columns for output.  Default: 80\
 
 
 
