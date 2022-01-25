@@ -14,6 +14,7 @@ import cc.clayman.processor.MultiNALProcessor;
 import cc.clayman.processor.UDPChunkStreamer;
 import cc.clayman.net.*;
 import cc.clayman.terminal.ChunkDisplay;
+import cc.clayman.util.Verbose;
 
 // Collect packets using UDPChunkStreamer
 
@@ -31,21 +32,61 @@ public class BPPListen {
     static long lastTime = 0;
 
 
-    static int udpPort = 6798;
+    // listen port
+    static int udpPort = 6799;
 
     static int columns = 80;    // default no of cols on terminal
 
     public static void main(String[] args) {
         if (args.length == 0) {
-        } else if (args.length == 1) {
-            String val = args[0];
-            udpPort = Integer.parseInt(val);
-            System.err.println("Listen on port: " + udpPort);
+        } else if (args.length >= 1) {
             
+            // have flags too
+
+            int argc = 0;
+
+            while (argc < args.length) {  // allow for port at end
+                String arg0 = args[argc];
+
+                if (arg0.equals("-p")) {
+                    // Port
+                    argc++;
+
+                    String val = args[argc];
+                    udpPort = Integer.parseInt(val);
+
+                } else if (arg0.equals("-c")) {            
+                    // columns
+                    argc++;
+
+                    String val = args[argc];
+                    columns = Integer.parseInt(val);
+
+                } else if (arg0.startsWith("-v")) {
+                    if (arg0.equals("-v")) {
+                        Verbose.level = 1;
+                    } else  if (arg0.equals("-vv")) {
+                        Verbose.level = 2;
+                    } else  if (arg0.equals("-vvv")) {
+                        Verbose.level = 3;
+                    }
+                } else {
+                    usage();
+                }
+
+                argc++;
+
+            }
+
         } else {
             usage();
         }
 
+        if (Verbose.level >= 2) {
+            System.err.println("Listen on port: " + udpPort);
+            System.err.println("Columns: " + columns);
+        }
+        
         try {
             processTraffic();
         } catch (IOException ioe) {
@@ -54,7 +95,7 @@ public class BPPListen {
     }
 
     static void usage() {
-        System.err.println("BPPListen [port]");
+        System.err.println("BPPListen [-p port] [-c cols]");
         System.exit(1);
     }
 
@@ -152,7 +193,10 @@ public class BPPListen {
 
                 if (count != 0 && ((thisTime - lastTime) / 1000) >= timeOut) {
                     // no recv after 5 secs
-                    System.err.println("stopping");
+                    if (Verbose.level >= 2) {
+                        System.err.println("stopping");
+                    }
+                    
                     System.out.flush();
                     streamer.stop();
                     cancel();
@@ -161,7 +205,9 @@ public class BPPListen {
                 long elaspsedSecs = (thisTime - startTime)/1000;
                 long elaspsedMS = (thisTime - startTime)%1000;
 
-                //System.err.println("Time: " + elaspsedSecs + "." + elaspsedMS);
+                if (Verbose.level >= 3) {
+                    System.err.println("Time: " + elaspsedSecs + "." + elaspsedMS);
+                }
 
             }
         }

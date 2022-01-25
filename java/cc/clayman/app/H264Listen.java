@@ -15,6 +15,7 @@ import cc.clayman.processor.MultiNALRebuilder;
 import cc.clayman.processor.UDPChunkStreamer;
 import cc.clayman.processor.NALResult;
 import cc.clayman.net.*;
+import cc.clayman.util.Verbose;
 
 
 // Use the MultiNALRebuilder to create an H264 stream
@@ -28,6 +29,7 @@ public class H264Listen {
     static int count = 0;
     static int total = 0;
 
+    // No of VCLs / layers per frame
     static int NO_OF_VCLS = 3;
 
     // keep time
@@ -38,33 +40,52 @@ public class H264Listen {
     // listen port
     static int udpPort = 6799;
 
-    // output filename
-    static String filename = null;
+    // output filename - default STDOUT
+    static String filename = "-";
     static NALOutputStream outputStream = null;
 
     static boolean showQuality = false;
 
     public static void main(String[] args) {
         if (args.length == 0) {
-        } else if (args.length == 1) {
-            String val = args[0];
-            udpPort = Integer.parseInt(val);
-            System.err.println("Listen on port: " + udpPort);
-            
-        } else if (args.length >= 2) {
+        } else if (args.length >= 1) {
             // have flags too
 
             int argc = 0;
 
-            while (argc < args.length-2) {  // allow for port at end
+            while (argc < args.length) {  // allow for port at end
                 String arg0 = args[argc];
 
                 if (arg0.equals("-f")) {
                     // Output filename
                     argc++;
                     filename = args[argc];
+
+                } else if (arg0.equals("-p")) {
+                    // Port
+                    argc++;
+
+                    String val = args[argc];
+                    udpPort = Integer.parseInt(val);
+
+                } else if (arg0.equals("-l")) {
+                    // VLCs / layers
+                    argc++;
+
+                    String val = args[argc];
+                    NO_OF_VCLS = Integer.parseInt(val);
+
                 } else if (arg0.equals("-q")) {
                     showQuality = true;
+            
+                } else if (arg0.startsWith("-v")) {
+                    if (arg0.equals("-v")) {
+                        Verbose.level = 1;
+                    } else  if (arg0.equals("-vv")) {
+                        Verbose.level = 2;
+                    } else  if (arg0.equals("-vvv")) {
+                        Verbose.level = 3;
+                    }
             
                 } else {
                     usage();
@@ -73,14 +94,15 @@ public class H264Listen {
                 argc++;
             }
 
-            String val = args[argc];
-            udpPort = Integer.parseInt(val);
-            System.err.println("Listen on port: " + udpPort);
-            
         } else {
             usage();
         }
 
+        if (Verbose.level >= 2) {
+            System.err.println("Listen on port: " + udpPort);
+            System.err.println("Layers: " + NO_OF_VCLS);
+        }
+            
         try {
             processTraffic();
         } catch (IOException ioe) {
@@ -89,7 +111,7 @@ public class H264Listen {
     }
 
     static void usage() {
-        System.err.println("H264Listen [-f filename] [port]");
+        System.err.println("H264Listen [-f [-|filename]] [-q] [-p port]");
         System.exit(1);
     }
 
@@ -103,11 +125,28 @@ public class H264Listen {
         rebuilder = new MultiNALRebuilder(streamer, NO_OF_VCLS);
         rebuilder.start();
 
+        // Setup rebuilder printer
+        rebuilder.onChunk(new ChunkInfoPrinter());
+
 
         // open file - maybe
         if (filename != null) {
             try {
-                outputStream = new NALOutputStream(new FileOutputStream(filename));
+                if (filename.equals("-")) {
+                    outputStream = new NALOutputStream(System.out);
+
+                    if (Verbose.level >= 2) {
+                        System.err.println("Output stream: STDOUT" );
+                    }
+                           
+                } else {
+                    outputStream = new NALOutputStream(new FileOutputStream(filename));
+
+                    if (Verbose.level >= 2) {
+                        System.err.println("Output file: " + filename);
+                    }                    
+                }
+                    
             } catch (IOException ioe) {
             }
         }
@@ -145,7 +184,9 @@ public class H264Listen {
 
             if (nalResult != null) {
 
-                System.err.println(nalResult);
+                if (Verbose.level >= 1) {
+                    System.err.println(nalResult);
+                }
 
 
 
@@ -154,17 +195,48 @@ public class H264Listen {
 
                     nal = nalResult.getNAL().get();
 
+                    if (!nal.isVideo()) {
+                        qualityLayer = 0;
+                    }
+
+                    if (Verbose.level >= 1) {
+                        System.err.println("LISTEN: NAL " + nalResult.nalType + " " + nalResult.number + " / " + qualityLayer);
+                    }
+
+
                 } else if (nalResult.state == NALResult.State.WASHED) {
-                    System.err.println("Washed " + nalResult.number + " / " + qualityLayer);
 
                     droppedLayer[qualityLayer] = true;
+
+                    if (Verbose.level >= 1) {
+                        System.err.println("LISTEN: WASHED " + nalResult.nalType + " " + nalResult.number + " / " + qualityLayer);
+
+                        if (showQuality) {
+                            System.err.printf("QUALITY: WASHED VCLNo: %d Qualitylayer: %d Time: %d\n", vclCount, qualityLayer, System.nanoTime());
+                        }
+                        
+                    }
+
+
+
+                    // increase qualityLayer for next time
+                    qualityLayer++;
+
                     continue;
                                     
                 } else if (nalResult.state == NALResult.State.DROPPED) {
                     // there was a reason to not rebuild the NAL
                     // probably data was stripped in the network
-                    System.err.println("Dropped " + nalResult.number + " / " + qualityLayer);
                     droppedLayer[qualityLayer] = true;
+
+                    // increase qualityLayer for next time
+                    qualityLayer++;
+
+                    if (Verbose.level >= 1) {
+                        System.err.println("LISTEN: DROPPED " +  nalResult.nalType + " " + nalResult.number + " / " + qualityLayer);
+                    }
+
+                    
                     continue;
 
                 }
@@ -184,27 +256,42 @@ public class H264Listen {
                         // Keep track of no of VCLs
                         if (prevIsNonVCL) {
                             vclCount++;
-                            prevIsNonVCL = false;
+                            prevIsNonVCL = false;                            
                         }
 
 
                         // Look at TemporalLayerModelGOB16
                         TemporalLayerModel.Tuple currentNALModel = model.getLayerInfo(vclCount);
 
-                        if (showQuality) {
-                            System.out.printf("Frame No: %s Frame: %s Temporal: %s  Qualitylayer: %d\n", vclCount + currentNALModel.adjustment, currentNALModel.frame, currentNALModel.temporal, qualityLayer);
-                        }
-
                         if (currentNALModel.frame == Frame.I && qualityLayer == 0) {
                             // It's an I frame, so reset droppedLayers
                             resetDroppedLayer(droppedLayer);
                         }
                            
-                        // write out nal
-                        if (droppedLayer[qualityLayer] == false)  {
+                        // What should we do with the NAL
+                        if (droppedLayer[qualityLayer] != true)  {
+                            // The NAL at this qualityLayer is not washed away
+                            
+                            if (showQuality) {
+                                System.err.printf("QUALITY: COLLECT VCLNo: %d FrameNo: %s Frame: %s Temporal: %s  Qualitylayer: %d Time: %d\n", vclCount, vclCount + currentNALModel.adjustment, currentNALModel.frame, currentNALModel.temporal, qualityLayer, System.nanoTime());  // WAS currentTimeMillis());
+                            }
+
+                            // Write NAL to the outputStream
                             writeNAL(outputStream, nal);
                         } else {
-                            System.err.println("NOT WRITING " + nalResult.number + " / " + qualityLayer);
+                            // droppedLayer[qualityLayer] is true
+                            // which means a previous NAL at this qualityLayer
+                            // was washed away, so we cannot use it as
+                            // there is a dependency
+                            if (Verbose.level >= 1) {
+                                System.err.println("LISTEN: NOT_WRITING " + nalResult.number + " / " + qualityLayer);
+                            }
+
+                            if (showQuality) {
+
+                                System.err.printf("QUALITY: NOT_WRITING VCLNo: %d FrameNo: %s Frame: %s Temporal: %s  Qualitylayer: %d Time: %d\n", vclCount, vclCount + currentNALModel.adjustment, currentNALModel.frame, currentNALModel.temporal, qualityLayer, System.nanoTime());  // WAS currentTimeMillis());
+                            }
+
                         }
 
                         
@@ -291,7 +378,10 @@ public class H264Listen {
 
                 if (count != 0 && ((thisTime - lastTime) / 1000) >= timeOut) {
                     // no recv after 5 secs
-                    System.err.println("stopping");
+                    if (Verbose.level >= 2) {
+                        System.err.println("stopping");
+                    }
+                    
                     System.out.flush();
                     streamer.stop();
                     cancel();
@@ -300,7 +390,9 @@ public class H264Listen {
                 long elaspsedSecs = (thisTime - startTime)/1000;
                 long elaspsedMS = (thisTime - startTime)%1000;
 
-                //System.err.println("Time: " + elaspsedSecs + "." + elaspsedMS);
+                if (Verbose.level >= 3) {
+                    System.err.println("Time: " + elaspsedSecs + "." + elaspsedMS);
+                }
 
             }
         }

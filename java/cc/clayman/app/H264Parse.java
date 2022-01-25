@@ -6,28 +6,56 @@ import java.io.FileInputStream;
 import java.util.List;
 
 import cc.clayman.h264.*;
+import cc.clayman.util.Verbose;
 
 
 public class H264Parse {
-    static String filename = null;
+    // Default is STDIN
+    static String filename = "-";
+    
     static boolean showQuality = false;
     
     public static void main(String[] args) {
-        if (args.length == 1) {
-            filename = args[0];
+        if (args.length == 0) {
+        } else if (args.length >= 1) {
+            // have flags too
+
+            int argc = 0;
+
+            while (argc < args.length) {  // allow for port at end
+                String arg0 = args[argc];
+
+                if (arg0.equals("-f")) {
+                    // Input filename
+                    argc++;
+                    filename = args[argc];
+
+                } else if (arg0.equals("-q")) {
+                    showQuality = true;
             
-        } else if (args.length == 2) {
+                } else if (arg0.startsWith("-v")) {
+                    if (arg0.equals("-v")) {
+                        Verbose.level = 1;
+                    } else  if (arg0.equals("-vv")) {
+                        Verbose.level = 2;
+                    } else  if (arg0.equals("-vvv")) {
+                        Verbose.level = 3;
+                    }
             
-            if (args[0].equals("-q")) {
-                showQuality = true;
+                } else {
+                    usage();
+                }
+
+                argc++;
             }
-            
-            filename = args[1];
 
         } else {
             usage();
         }
 
+        if (Verbose.level >= 2) {
+        }
+            
         try {
             processFile(filename);
         } catch (IOException ioe) {
@@ -38,16 +66,34 @@ public class H264Parse {
     }
 
     static void usage() {
-        System.err.println("H264Parse [-q] filename");
+        System.err.println("H264Parse [-f [-|filename]] [-q]");
         System.exit(1);
     }
 
     
 
     protected static void processFile(String filename) throws IOException {
-        TemporalLayerModel model = new TemporalLayerModelGOB16();
         
-        H264InputStream str = new H264InputStream(new FileInputStream(filename));
+        // Input stream
+        H264InputStream str = null;
+
+        if (filename.equals("-")) {
+            str = new H264InputStream(System.in);
+
+            if (Verbose.level >= 2) {
+                System.err.println("Input stream: STDIN" );
+            }
+                           
+        } else {
+            str = new H264InputStream(new FileInputStream(filename));
+
+            if (Verbose.level >= 2) {
+                System.err.println("Input file: " + filename);
+            }                    
+        }
+
+        // TemporalLayerModel
+        TemporalLayerModel model = new TemporalLayerModelGOB16();
 
         int count = 0;
         int total = 0;

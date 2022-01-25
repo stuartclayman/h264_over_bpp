@@ -9,6 +9,7 @@ import cc.clayman.chunk.ChunkInfo;
 import cc.clayman.chunk.ChunkContent;
 import cc.clayman.h264.NALType;
 import cc.clayman.net.IP;
+import cc.clayman.util.Verbose;
 
 /**
  * Take ChunkInfo objects and converts them into a Raw packet.
@@ -67,7 +68,9 @@ public class RawPacketizer implements ChunkPacketizer {
 
         int sizeNeeded = totalChunkSpaceUsed; 
 
-        System.err.println("Raw: totalChunkSpaceUsed = " + totalChunkSpaceUsed);
+        if (Verbose.level >= 3) {
+            System.err.println("Raw: totalChunkSpaceUsed = " + totalChunkSpaceUsed);
+        }
 
         int bufPos = 0;
 
@@ -123,7 +126,9 @@ public class RawPacketizer implements ChunkPacketizer {
 
                 int contentSize = content[c].offset();
 
-                System.err.println("Raw: content[c].offset() = " + contentSize);
+                if (Verbose.level >= 1) {
+                    System.err.println("CHUNK: nalNo: " + nalNo + " Raw: content[" + c + "] = " + contentSize);
+                }
                 
 
                 // now add the bytes to the packetBytes
@@ -134,7 +139,9 @@ public class RawPacketizer implements ChunkPacketizer {
 
             }
 
-            System.err.println("Raw: bufPos = " + bufPos);
+            if (Verbose.level >= 3) {
+                System.err.println("Raw: bufPos = " + bufPos);
+            }
                 
             return packetBytes;
         }

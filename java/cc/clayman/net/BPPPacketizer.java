@@ -10,6 +10,7 @@ import cc.clayman.chunk.ChunkContent;
 import cc.clayman.h264.NALType;
 import cc.clayman.net.IP;
 import cc.clayman.bpp.BPP;
+import cc.clayman.util.Verbose;
 
 /**
  * Take ChunkInfo objects and converts them into a BPP packet.
@@ -75,7 +76,7 @@ public class BPPPacketizer implements ChunkPacketizer {
 
             int chunkCount = content.length;
 
-            System.err.println("content.length = " + content.length);
+            //System.err.println("content.length = " + content.length);
 
             byte[] packetBytes = new byte[sizeNeeded + headerByteCount];
 
@@ -121,7 +122,9 @@ public class BPPPacketizer implements ChunkPacketizer {
             packetBytes[5] = (byte)(((commandBlock & 0x0000FF00) >> 8) & 0xFF);
             packetBytes[6] = (byte)(((commandBlock & 0x000000FF) >> 0) & 0xFF);
 
-            System.err.println("Chunk data: nalNo = " + nalNo + " nalCount = " + nalCount);
+            if (Verbose.level >= 2) {
+                System.err.println("Chunk data: nalNo = " + nalNo + " nalCount = " + nalCount);
+            }
 
             // increase bufPos
             bufPos += BPP.COMMAND_BLOCK_SIZE;
@@ -135,7 +138,9 @@ public class BPPPacketizer implements ChunkPacketizer {
                 int fragment = content[c].getFragmentationNumber();
                 boolean isLastFragment = content[c].isLastFragment();
 
-                System.err.println("BPP: content[c].offset() = " + contentSize);
+                if (Verbose.level >= 1) {
+                    System.err.println("CHUNK: nalNo: " + (nalNo + c) + " BPP: content[" + c + "] = " + contentSize + " fragment: " + fragment + " isLastFragment: " + isLastFragment);
+                }
 
 
                 // Add per-chunk Metadata Block - 48 bits / 6 bytes 
@@ -206,7 +211,9 @@ public class BPPPacketizer implements ChunkPacketizer {
             }
 
 
-            System.err.println("BPP: bufPos = " + bufPos);
+            if (Verbose.level >= 2) {
+                System.err.println("BPP: bufPos = " + bufPos);
+            }
                 
             return packetBytes;
         }

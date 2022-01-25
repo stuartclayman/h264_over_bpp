@@ -14,6 +14,7 @@ import cc.clayman.chunk.MultiChunkInfo;
 import cc.clayman.h264.NALType;
 import cc.clayman.net.IP;
 import cc.clayman.bpp.BPP;
+import cc.clayman.util.Verbose;
 
 /**
  * Take a DatagramPacket  and converts them into a ChunkInfo object.
@@ -93,7 +94,10 @@ public class BPPDepacketizer implements ChunkDepacketizer {
         threshold = ((b5 & 0x07) << 5) | (b6 & 0xFC) >> 3;
         
 
-        System.err.printf(" %-6d ver: 0x%04X chunkCount: %d command: 0x%05X condition: %d threshold: %d\n", count, version, chunkCount, command, condition, threshold);
+        
+        if (Verbose.level >= 2) {
+            System.err.printf(" %-6d ver: 0x%04X chunkCount: %d command: 0x%05X condition: %d threshold: %d\n", count, version, chunkCount, command, condition, threshold);
+        }
         
 
         // Visit each ChunkContent in the packet
@@ -163,9 +167,11 @@ public class BPPDepacketizer implements ChunkDepacketizer {
             }
             
             
-            System.err.printf("  %-3dOFFi: nalNo: %d nalCount: %d fragment: %d \n", (c+1), nalNo, nalCount, fragment);
-            System.err.printf("     CSi: contentSize: %d  SIGi:  %d\n", csI, sigI);
-            System.err.printf("     OFi: %s FFi: %s  NAL: %s\n", ofI, ffI, nalType);
+            if (Verbose.level >= 1) {
+                System.err.printf("  %-3dOFFi: nalNo: %d nalCount: %d fragment: %d \n", (c+1), nalNo, nalCount, fragment);
+                System.err.printf("     CSi: contentSize: %d  SIGi:  %d\n", csI, sigI);
+                System.err.printf("     OFi: %s FFi: %s  NAL: %s\n", ofI, ffI, nalType);
+            }
 
             // save the contentSize
             contentSizes[c] = csI;

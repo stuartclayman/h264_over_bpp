@@ -14,6 +14,7 @@ import cc.clayman.chunk.*;
 import cc.clayman.processor.MultiNALProcessor;
 import cc.clayman.net.*;
 import cc.clayman.terminal.ChunkDisplay;
+import cc.clayman.util.Verbose;
 
 // A UDP receiver 
 
@@ -30,7 +31,7 @@ public class UDPListen {
     static long lastTime = 0;
 
     // listen port
-    static int udpPort = 6798;
+    static int udpPort = 6799;
 
     // output filename
     static String filename = null;
@@ -41,38 +42,59 @@ public class UDPListen {
 
     public static void main(String[] args) {
         if (args.length == 0) {
-        } else if (args.length == 1) {
-            String val = args[0];
-            udpPort = Integer.parseInt(val);
-            System.err.println("Listen on port: " + udpPort);
+        } else if (args.length >= 1) {
             
-        } else if (args.length >= 2) {
             // have flags too
 
             int argc = 0;
 
-            while (argc < args.length-2) {  // allow for port at end
+            while (argc < args.length) {  // allow for port at end
                 String arg0 = args[argc];
 
                 if (arg0.equals("-f")) {
                     // Output filename
                     argc++;
                     filename = args[argc];
+
+                } else if (arg0.equals("-p")) {
+                    // Port
+                    argc++;
+
+                    String val = args[argc];
+                    udpPort = Integer.parseInt(val);
+
+                } else if (arg0.equals("-c")) {            
+                    // columns
+                    argc++;
+
+                    String val = args[argc];
+                    columns = Integer.parseInt(val);
+
+                } else if (arg0.startsWith("-v")) {
+                    if (arg0.equals("-v")) {
+                        Verbose.level = 1;
+                    } else  if (arg0.equals("-vv")) {
+                        Verbose.level = 2;
+                    } else  if (arg0.equals("-vvv")) {
+                        Verbose.level = 3;
+                    }
                 } else {
                     usage();
                 }
 
                 argc++;
+
             }
 
-            String val = args[argc];
-            udpPort = Integer.parseInt(val);
-            System.err.println("Listen on port: " + udpPort);
-            
         } else {
             usage();
         }
 
+        if (Verbose.level >= 2) {
+            System.err.println("Listen on port: " + udpPort);
+            System.err.println("Columns: " + columns);
+        }
+        
         try {
             processTraffic();
         } catch (IOException ioe) {
@@ -83,7 +105,7 @@ public class UDPListen {
 
 
     static void usage() {
-        System.err.println("UDPListen [-f filename] [port]");
+        System.err.println("UDPListen [-f [-|filename]] [-c cols] [-p port]");
         System.exit(1);
     }
 
@@ -98,7 +120,20 @@ public class UDPListen {
         // open file - maybe
         if (filename != null) {
             try {
-                outputStream = new FileOutputStream(filename);
+                if (filename.equals("-")) {
+                    outputStream = System.out;
+
+                    if (Verbose.level >= 2) {
+                        System.err.println("Output stream: STDOUT" );
+                    }
+                } else {
+                    outputStream = new FileOutputStream(filename);
+
+                    if (Verbose.level >= 2) {
+                        System.err.println("Output file: " + filename);
+                    }                    
+                }
+                
             } catch (IOException ioe) {
             }
         }
@@ -136,7 +171,9 @@ public class UDPListen {
 
             total += chunk.offset();
 
-            System.err.println("seqNo " + seqNo + " NALNumber " + nalNo + " count " + nalCount + " NALType " + type + " lastSeen " + lastSeen);
+            if (Verbose.level >= 1) {
+                System.err.println("LISTEN: RECEIVE seqNo: " + seqNo + " NALNumber: " + nalNo + " count: " + nalCount + " NALType: " + type + " lastSeen: " + lastSeen);
+            }
 
             if (lastSeen+1 == seqNo) {
 
@@ -153,11 +190,13 @@ public class UDPListen {
             } else {
                 int missing = seqNo - lastSeen;
 
-                for (int m=1; m<=missing; m++) {
-                    System.out.printf("%-8d", lastSeen + m);    // N
-                    System.out.printf("%-10s", "DROPPED");           // 
+                if (Verbose.level >= 1) {
+                    for (int m=1; m<=missing; m++) {
+                        System.err.printf("%-18s", "LISTEN: DROPPED ");           //
+                        System.err.printf("%-8d", lastSeen + m);    // N
                 
-                    System.out.println(" ");
+                        System.err.println("");
+                    }
                 }
 
                 lastSeen = seqNo;
@@ -165,7 +204,9 @@ public class UDPListen {
 
         }
 
-        System.err.println("end of loop");
+        if (Verbose.level >= 3) {
+            System.err.println("end of loop");
+        }
 
         timer.cancel();
 
@@ -258,7 +299,9 @@ public class UDPListen {
 
                 if (count != 0 && ((thisTime - lastTime) / 1000) >= 5) {
                     // no recv after 5 secs
-                    System.err.println("stopping");
+                    if (Verbose.level >= 3) {
+                        System.err.println("stopping");
+                    }
                     System.out.flush();
                     receiver.stop();
                     cancel();
@@ -267,7 +310,9 @@ public class UDPListen {
                 long elaspsedSecs = (thisTime - startTime)/1000;
                 long elaspsedMS = (thisTime - startTime)%1000;
 
-                System.err.println("Time: " + elaspsedSecs + "." + elaspsedMS);
+                if (Verbose.level >= 3) {
+                    System.err.println("Time: " + elaspsedSecs + "." + elaspsedMS);
+                }
 
             }
         }

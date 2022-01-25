@@ -10,55 +10,64 @@ import cc.clayman.chunk.*;
 import cc.clayman.processor.MultiNALProcessor;
 import cc.clayman.net.*;
 import cc.clayman.terminal.ChunkDisplay;
+import cc.clayman.util.Verbose;
 
 // Using the UDPSender
 // with a BPP packetizer
 public class BPPSend {
 
+    // Default is STDIN
+    static String filename = "-";
+
+    // send port
+    static int udpPort = 6799;
+
     static UDPSender sender = null;
     static int sleep = 7;       // default sleep (in milliseconds) between chunks
+    static boolean adaptiveSleep = false; // show we do adaptive sleep
     static int packetsPerSecond = 0;
     static ChunkPacketizer packetizer = null;
     static ChunkSizeCalculator calculator = null;
     static int columns = 80;    // default no of cols on terminal
+    static int packetSize = 1500;  // packet size
+
+
+    
 
     public static void main(String[] args) {
-        if (args.length == 1) {
-            String filename = args[0];
-            
-            try {
-                processFile(filename);
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
-            }
-        } else if (args.length >= 2) {
+        if (args.length == 0) {
+        } else if (args.length >= 1) {
             // have flags too
 
             int argc = 0;
 
-            while (argc < args.length-1) {
+            while (argc < args.length) {
                 String arg0 = args[argc];
 
             
-                if (arg0.equals("-e")) {
-                    // Use Even chunk packing strategy
+                if (arg0.equals("-f")) {
+                    // Input filename
                     argc++;
-                    calculator = new EvenSplit();
-
-                } else if (arg0.equals("-d")) {
-                    // Use Dynamic split chunk packing strategy
-                    argc++;
-                    calculator = new DynamicSplit();
-
-                } else if (arg0.equals("-i")) {
-                    // Use In order chunk  strategy
-                    argc++;
-                    calculator = new InOrder();
+                    filename = args[argc];
 
                 } else if (arg0.equals("-p")) {
-                    // Use In order chunk and full packing strategy
+                    // Port
                     argc++;
-                    calculator = new InOrderPacked();
+
+                    String val = args[argc];
+                    udpPort = Integer.parseInt(val);
+
+                } else if (arg0.equals("-z")) {            
+                    // packet size
+                    argc++;
+
+                    String val = args[argc];
+                    packetSize = Integer.parseInt(val);
+
+                } else if (arg0.equals("-a")) {
+                    // Use adaptive sleep approach
+                    argc++;
+                    adaptiveSleep = true;
 
                 } else if (arg0.equals("-s")) {
                     // Sleep (in milliseconds) between chunks
@@ -77,45 +86,113 @@ public class BPPSend {
                     sleep = 1000 / packetsPerSecond;
                     argc++;
              
+                } else if (arg0.equals("-c")) {            
+                    // columns
+                    argc++;
+
+                    String val = args[argc];
+                    columns = Integer.parseInt(val);
+
+                    
+                } else if (arg0.startsWith("-P")) {
+
+                    if (arg0.equals("-Pe")) {
+                        // Use Even chunk packing strategy
+                        argc++;
+                        calculator = new EvenSplit();
+
+                    } else if (arg0.equals("-Pd")) {
+                        // Use Dynamic split chunk packing strategy
+                        argc++;
+                        calculator = new DynamicSplit();
+
+                    } else if (arg0.equals("-Pi")) {
+                        // Use In order chunk  strategy
+                        argc++;
+                        calculator = new InOrder();
+
+                    } else if (arg0.equals("-Pf")) {
+                        // Use In order chunk and full packing strategy
+                        argc++;
+                        calculator = new InOrderPacked();
+
+                    } else {
+                        // Unknown packing option
+                    }
+
+                } else if (arg0.startsWith("-v")) {
+                    if (arg0.equals("-v")) {
+                        Verbose.level = 1;
+                    } else  if (arg0.equals("-vv")) {
+                        Verbose.level = 2;
+                    } else  if (arg0.equals("-vvv")) {
+                        Verbose.level = 3;
+                    }
+
                 } else {
                     usage();
                 }
+
+                argc++;
             }
-            
-            String filename = args[argc];
-            
-            try {
-                processFile(filename);
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
-            }
+
         } else {
             usage();
+        }            
+
+
+        if (Verbose.level >= 2) {
+            System.err.println("Send on port: " + udpPort);
+            System.err.println("Packet size: " + packetSize);
+            System.err.println("Columns: " + columns);
+            System.err.println("Adaptive Sleep: " + (adaptiveSleep ? "ON" : "OFF"));
+        }
+        
+        try {
+            processFile(filename);
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
         }
     }
 
     static void usage() {
-        System.err.println("BPPSend [-e|-d|-i|-p|-s sleep|-r rate] filename");
+        System.err.println("BPPSend [-f [-|filename]] [-e|-d|-i|-I] [-s sleep|-r rate|-a] [-z packetSize]  [-p port]");
         System.exit(1);
     }
 
 
     protected static void processFile(String filename) throws IOException {
-        // Setup UDP Sender
-        sender = new UDPSender("localhost", 6799);
-        sender.start();
-        
-
         int count = 0;
         int total = 0;
         ChunkInfo chunk = null;
         
+        // Setup UDP Sender
+        sender = new UDPSender("localhost", udpPort);
+        sender.start();
+        
         // Configure ChunkPacketizer
         // 1500 byte packets / 3 chunks
-        packetizer = new BPPPacketizer(1500, 3);
+        packetizer = new BPPPacketizer(packetSize, 3);
 
         // Open a H264InputStream
-        H264InputStream str = new H264InputStream(new FileInputStream(filename));
+        H264InputStream str = null;
+
+        if (filename.equals("-")) {
+            str = new H264InputStream(System.in);
+
+            if (Verbose.level >= 2) {
+                System.err.println("Input stream: STDIN" );
+            }
+                           
+        } else {
+            str = new H264InputStream(new FileInputStream(filename));
+
+            if (Verbose.level >= 2) {
+                System.err.println("Input file: " + filename);
+            }                    
+        }
+
+        
         // MultiNALProcessor - payload size from packetizer, 3 chunks
         MultiNALProcessor nalProcessor = new MultiNALProcessor(str, packetizer.getPayloadSize(), 3);
 
@@ -124,6 +201,12 @@ public class BPPSend {
             nalProcessor.setChunkSizeCalculator(calculator);
         }
 
+        // Setup nalProcessor printer
+        if (Verbose.level >= 1) {
+            nalProcessor.onChunk(new ChunkInfoPrinter());
+        }
+
+        // Get Chunks from the nalProcessor
         while (nalProcessor.hasNext()) {
 
             chunk = nalProcessor.next();
@@ -135,14 +218,29 @@ public class BPPSend {
             printChunk(chunk, count, total, nalProcessor.getPayloadSize());
 
             
-            System.err.printf("%-6d", count);
+            //System.err.printf("%-6d", count);
+            //infoChunk(chunk, count, total);
 
             // now send it
             sender.sendPayload(packetizer.convert(count, chunk));
 
             // fix sleep from student code - awaiting proper algorithm
-            try { 
-                Thread.sleep(sleep);
+            try {
+                if (adaptiveSleep) {
+                    int value = (chunk.offset() / (packetSize / sleep)) + 1;
+                    Thread.sleep(value);
+
+                    if (Verbose.level >= 3) {
+                        System.err.print("sleep: " + value);
+                    }
+                } else {
+                    if (Verbose.level >= 3) {
+                        System.err.print("sleep: " + sleep);
+                    }
+
+                    Thread.sleep(sleep);
+                }
+                
             } catch (InterruptedException ie) {
             }
         }
@@ -155,14 +253,7 @@ public class BPPSend {
 
     }
     
-    protected static void printChunk(ChunkInfo chunk, int count, int total) {
-
-        System.out.printf("%-8d", count);               // N
-        System.out.printf("%-10s", chunk.getNALType());               // type
-        System.out.printf(" %-5d", chunk.offset());         // no of bytes
-        System.out.printf(" %-10d", total);             // total bytes
-
-        System.out.println();
+    protected static void infoChunk(ChunkInfo chunk, int count, int total) {
     }
     
     protected static void printChunk(ChunkInfo chunk, int count, int total, int payloadSize) {
@@ -187,4 +278,5 @@ public class BPPSend {
         System.out.println(" ");
                     
     }
+
  }

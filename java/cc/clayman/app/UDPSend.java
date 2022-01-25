@@ -10,35 +10,56 @@ import cc.clayman.chunk.*;
 import cc.clayman.processor.*;
 import cc.clayman.net.*;
 import cc.clayman.terminal.ChunkDisplay;
+import cc.clayman.util.Verbose;
 
 // A UDP sender
 // With a Raw packetizer
 public class UDPSend {
 
+    // Default is STDIN
+    static String filename = "-";
+
+    // send port
+    static int udpPort = 6799;
+
     static UDPSender sender = null;
     static int sleep = 7;       // default sleep (in milliseconds) between chunks
     static ChunkPacketizer packetizer = null;
     static int columns = 80;    // default no of cols on terminal
+    static int packetSize = 1500;  // packet size
 
+
+    
     public static void main(String[] args) {
-        if (args.length == 1) {
-            String filename = args[0];
-            
-            try {
-                processFile(filename);
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
-            }
-        } else if (args.length >= 2) {
+        if (args.length == 0) {
+        } else if (args.length >= 1) {
             // have flags too
 
             int argc = 0;
 
-            while (argc < args.length-1) {
+            while (argc < args.length) {
                 String arg0 = args[argc];
 
             
-                if (arg0.equals("-s")) {
+                if (arg0.equals("-f")) {
+                    // Input filename
+                    argc++;
+                    filename = args[argc];
+
+                } else if (arg0.equals("-p")) {
+                    // Port
+                    argc++;
+
+                    String val = args[argc];
+                    udpPort = Integer.parseInt(val);
+
+                } else if (arg0.equals("-z")) {            
+                    // packet size
+                    argc++;
+
+                    String val = args[argc];
+                    packetSize = Integer.parseInt(val);
+                } else if (arg0.equals("-s")) {
                     // Sleep (in milliseconds) between chunks
                     argc++;
 
@@ -46,13 +67,36 @@ public class UDPSend {
                     sleep = Integer.parseInt(val);
                     argc++;
              
+                } else if (arg0.equals("-c")) {            
+                    // columns
+                    argc++;
+
+                    String val = args[argc];
+                    columns = Integer.parseInt(val);
+
+                } else if (arg0.startsWith("-v")) {
+                    if (arg0.equals("-v")) {
+                        Verbose.level = 1;
+                    } else  if (arg0.equals("-vv")) {
+                        Verbose.level = 2;
+                    } else  if (arg0.equals("-vvv")) {
+                        Verbose.level = 3;
+                    }
+
                 } else {
                     usage();
                 }
+
+                argc++;
             }
             
-            String filename = args[argc];
             
+            if (Verbose.level >= 2) {
+                System.err.println("Send on port: " + udpPort);
+                System.err.println("Packet size: " + packetSize);
+                System.err.println("Columns: " + columns);
+            }
+        
             try {
                 processFile(filename);
             } catch (IOException ioe) {
@@ -64,14 +108,14 @@ public class UDPSend {
     }
 
     static void usage() {
-        System.err.println("UDPSend [-s sleep] filename");
+        System.err.println("UDPSend  [-f [-|filename]] [-s sleep] [-z packetSize] [-p port]");
         System.exit(1);
     }
 
 
     protected static void processFile(String filename) throws IOException {
         // Setup UDP Sender
-        sender = new UDPSender("localhost", 6799);
+        sender = new UDPSender("localhost", udpPort);
         sender.start();
         
 
@@ -80,12 +124,34 @@ public class UDPSend {
         ChunkInfo chunk = null;
         
         // Configure ChunkPacketizer
-        packetizer = new RawPacketizer(1500);
+        packetizer = new RawPacketizer(packetSize);
 
         // Open a H264InputStream
-        H264InputStream str = new H264InputStream(new FileInputStream(filename));
+        H264InputStream str = null;
+
+        if (filename.equals("-")) {
+            str = new H264InputStream(System.in);
+
+            if (Verbose.level >= 2) {
+                System.err.println("Input stream: STDIN" );
+            }
+                           
+        } else {
+            str = new H264InputStream(new FileInputStream(filename));
+
+            if (Verbose.level >= 2) {
+                System.err.println("Input file: " + filename);
+            }                    
+        }
+
+        
         // MultiNALProcessor - payload size of 1468
         MultiNALProcessor nalProcessor = new MultiNALProcessor(str, packetizer.getPayloadSize(), 1);
+
+        // Setup nalProcessor printer
+        if (Verbose.level >= 1) {
+            nalProcessor.onChunk(new ChunkInfoPrinter());
+        }
 
         while (nalProcessor.hasNext()) {
 

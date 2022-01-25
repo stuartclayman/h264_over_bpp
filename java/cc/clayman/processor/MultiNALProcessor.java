@@ -12,6 +12,7 @@ import java.util.stream.Stream;
 
 import cc.clayman.h264.*;
 import cc.clayman.chunk.*;
+import cc.clayman.util.Verbose;
 
 
 
@@ -51,6 +52,9 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
     // The current ChunkInfo
     ChunkInfo chunk = null;
 
+    // A potential callback
+    ChunkInfoMethod onChunk = null;
+    
     ChunkSizeCalculator chunkSizeCalculator ;
 
     // The H264InputStream has hit EOF, so no more to do
@@ -167,7 +171,10 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
      * Returns true if the iteration has more elements.
      */
     public boolean hasNext() {
-        System.err.println("  hasNext()");
+        if (Verbose.level >= 2) {
+            System.err.println("  hasNext()");
+        }
+        
         // if no currentNAL, probably after ejectNAL()
         if (currentNAL == null) {
             // get another one from the inputStream
@@ -182,10 +189,30 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
      * Returns the next element in the iteration.
      */
     public ChunkInfo next() {
-        System.err.println("  next()");
+        if (Verbose.level >= 2) {
+            System.err.println("  next()");
+        }
+        
         // We can loop over NALs until we fill the ChunkInfo
         // or see a different type of NAL
+        ChunkInfo chunkInfo = innerNext();
 
+        if (chunkInfo == null) {
+            return null;
+        } else {
+            // call onChunk if set from outside
+            if (onChunk != null) {
+                onChunk.call(chunkInfo);
+            }
+
+            return chunkInfo;
+        }
+
+    }
+
+
+    
+    protected ChunkInfo innerNext() {
         while (true) {
             // get a NAL
             if (currentNAL == null) {
@@ -211,7 +238,10 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
             if (chunk == null) {
                 // Allocate a new ChunkInfo for next ime
 
-                System.err.println("  Allocate " + currentNAL.getTypeClass() + " nalNumber = " + nalNumber + " nalCount = " + nalCount + " readIn = " + readIn);
+                if (Verbose.level >= 2) {
+                    System.err.println("  Allocate " + currentNAL.getTypeClass() + " nalNumber = " + nalNumber + " nalCount = " + nalCount + " readIn = " + readIn);
+                }
+                
 
                 if (currentNAL.getTypeClass() == NALType.NONVCL) {
                     // NALType = NONVCL
@@ -231,7 +261,9 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
             } else if (chunk.getNALType() != currentNAL.getTypeClass()) {
                 // The Type changed from non-VCL to VCL, or VCL to non-VCL
 
-                System.err.println("  Switch " + chunk.getNALType() + "  TO  " + currentNAL.getTypeClass() + " nalNumber = " + nalNumber + " nalCount = " + nalCount + " readIn = " + readIn);
+                if (Verbose.level >= 2) {
+                    System.err.println("  Switch " + chunk.getNALType() + "  TO  " + currentNAL.getTypeClass() + " nalNumber = " + nalNumber + " nalCount = " + nalCount + " readIn = " + readIn);
+                }
 
                 // If there's something in the chunk, return the ChunkInfo
                 if (chunk.remaining() < chunk.size()) {
@@ -257,7 +289,9 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
                 // CHeck if the NAL will fit in the Chunk
                 int nalSpace = currentNAL.getSize() + currentNAL.getMarkerSize();
 
-                System.err.println("  NONVCL Space " + nalSpace + " <> " + chunk.remaining());
+                if (Verbose.level >= 2) {
+                    System.err.println("  NONVCL Space " + nalSpace + " <> " + chunk.remaining());
+                }
 
                 if (nalSpace > chunk.remaining()) {
                     // Not enough room
@@ -358,14 +392,18 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
                 finished = true;
                 inStream.close();
 
-                System.err.println("EOF");
+                if (Verbose.level >= 2) {
+                    System.err.println("EOF");
+                }
 
                 return false;
             } else {
                 currentNAL = inStream.getNAL();
                 nalNumber++;
 
-                System.err.println("  Fetch " + nalNumber + " NAL " + currentNAL);
+                if (Verbose.level >= 2) {
+                    System.err.println("  Fetch " + nalNumber + " NAL " + currentNAL);
+                }
                 
                 // Here we check the NALType to determine if we should readahead
                 if (currentNAL.getTypeClass() == NALType.VCL) {
@@ -384,7 +422,9 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
                         currentNAL = inStream.getNAL();
                         nalNumber++;
 
-                        System.err.println("  Fetch " + nalNumber + " NAL " + currentNAL);
+                        if (Verbose.level >= 2) {
+                            System.err.println("  Fetch " + nalNumber + " NAL " + currentNAL);
+                        }
                 
                         if (currentNAL.getTypeClass() != NALType.VCL) {
                             throw new Error("Unexpected NAL at " + nalNumber);
@@ -427,7 +467,9 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
         // eject currentNAL
         currentNAL = null;
 
-        System.err.println("    ejectNAL");
+        if (Verbose.level >= 2) {
+            System.err.println("    ejectNAL");
+        }
     }
 
     /**
@@ -500,4 +542,12 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
         return bb.limit() - bb.position();
     }
     
+    /**
+     * Setup callback function.
+     * Can be used for printouts, etc.
+     */
+    public void onChunk(ChunkInfoMethod method) {
+        onChunk = method;
+    }
+
 }

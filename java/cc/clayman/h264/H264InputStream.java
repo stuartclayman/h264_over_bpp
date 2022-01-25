@@ -12,6 +12,8 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.EOFException;
 import java.nio.ByteBuffer;
+import cc.clayman.util.Verbose;
+
 
 /**
  * An InputStream that has H264 encoded data in it.
@@ -113,7 +115,9 @@ public class H264InputStream  {
 
                 readPos = bufPos;
 
-                //System.err.println("F readPos = " + readPos + " nextPos = " + nextPos + " bufPos = " + bufPos);
+                if (Verbose.level >= 3) {
+                    System.err.println("F readPos = " + readPos + " nextPos = " + nextPos + " bufPos = " + bufPos);
+                }
 
 
                 while(more_data_in_byte_stream() && next_bits(24) != 0x000001 && next_bits(32) != 0x00000001);
@@ -131,11 +135,15 @@ public class H264InputStream  {
 
                 }
             
-                //System.err.println("S readPos = " + readPos + " nextPos = " + nextPos + " bufPos = " + bufPos);
+                if (Verbose.level >= 3) {
+                    System.err.println("S readPos = " + readPos + " nextPos = " + nextPos + " bufPos = " + bufPos);
+                }
 
                 return bufPos ;
             } catch (EOFException ioe) {
-                //System.err.println("EOF at " + inBuffer.position() + " bufPos = " + bufPos + " nextPos = " + nextPos);
+                if (Verbose.level >= 3) {
+                    System.err.println("EOF at " + inBuffer.position() + " bufPos = " + bufPos + " nextPos = " + nextPos);
+                }
                 
                 return -1;
             } catch (IOException ioe) {
@@ -225,7 +233,9 @@ public class H264InputStream  {
 
         // check buffer position after read
         if (bufPos != inBuffer.position()) {
-            System.err.println("bufPos " + bufPos + " != inBuffer.position() " + inBuffer.position());
+            if (Verbose.level >= 2) {
+                System.err.println("bufPos " + bufPos + " != inBuffer.position() " + inBuffer.position());
+            }
         }
 
         // try resetting position
