@@ -7,21 +7,33 @@ save.
 
 These programs can be used with an external virtualisation platform
 which can enact BPP behaviours to drop chunks under certain network
-conditions.
+conditions.\
 Examples include: [VLSP](https://github.com/stuartclayman/VLSP) The
-Very Lightweight Network & Service Platform.\
+Very Lightweight Network & Service Platform.
 
 
 ### Packages
 
-**app**  Application entry points
-**bpp**  BPP definitions
-**chunk**  Chunk processing
-**h264**  H264 definitions, parsing NALs, and input stream
-**net**  BPP packetizing and UDP netowrking
-**processor**  NALs --> chunks and chunks --> NALs
-**terminal**  Terminal output functions
-**util** Util functions
+**app**  Application entry points\
+**bpp**  BPP definitions\
+**chunk**  Chunk processing\
+**h264**  H264 definitions, parsing NALs, and input stream\
+**net**  BPP packetizing and UDP netowrking\
+**processor**  NALs --> chunks and chunks --> NALs\
+**terminal**  Terminal output functions\
+**util** Util functions\
+
+
+## Useful interations
+
+H264Parse  _Prints out info on an H264 file_
+
+BPPSend  -->   BPPListen   _Prints out BPP received info_
+
+BPPSend  -->   H264Listen  _Reconstructs H264 video from BPP packets, and outputs to a file_
+
+UDPSend  -->   UDPListen   _Outputs data from UDP packets into a file_
+
 
 ## Usage
 
@@ -95,17 +107,6 @@ _Send a video file over UDP_\
 **-z** Packet size.  Default: 1500\
 **-c** cols No of columns for output.  Default: 80\
 
-
-
-## Useful interations
-
-H264Parse  _Prints out info on an H264 file_
-
-BPPSend  -->   BPPListen   _Prints out BPP received info_
-
-BPPSend  -->   H264Listen  _Reconstructs H264 video from BPP packets, and outputs to a file_
-
-UDPSend  -->   UDPListen   _Outputs data from UDP packets into a file_
 
 
 
