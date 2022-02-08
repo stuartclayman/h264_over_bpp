@@ -42,6 +42,9 @@ All apps execute from the entry package: cc.clayman.app
 
 
 
+
+
+
 Some examples, plus arguments.
 
 
@@ -111,3 +114,7 @@ _Send a video file over UDP_\
 
 
 
+All commands support verbose output, at different levels:\
+**-v** Verbose level 1\
+**-vv** Verbose level 2\
+**-vvv** Verbose level 3
