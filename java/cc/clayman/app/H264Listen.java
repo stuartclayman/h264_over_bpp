@@ -126,7 +126,9 @@ public class H264Listen {
         rebuilder.start();
 
         // Setup rebuilder printer
-        rebuilder.onChunk(new ChunkInfoPrinter());
+        if (Verbose.level >= 1) {
+            rebuilder.onChunk(new ChunkInfoPrinter());
+        }
 
 
         // open file - maybe
