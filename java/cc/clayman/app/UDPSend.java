@@ -19,6 +19,8 @@ public class UDPSend {
     // Default is STDIN
     static String filename = "-";
 
+    // send host
+    static String host = "localhost";
     // send port
     static int udpPort = 6799;
 
@@ -45,6 +47,11 @@ public class UDPSend {
                     // Input filename
                     argc++;
                     filename = args[argc];
+
+                } else if (arg0.equals("-h")) {
+                        // Host
+                        argc++;
+                        host = args[argc];
 
                 } else if (arg0.equals("-p")) {
                     // Port
@@ -108,14 +115,14 @@ public class UDPSend {
     }
 
     static void usage() {
-        System.err.println("UDPSend  [-f [-|filename]] [-s sleep] [-z packetSize] [-p port]");
+        System.err.println("UDPSend  [-f [-|filename]] [-s sleep] [-z packetSize] [-h host] [-p port]");
         System.exit(1);
     }
 
 
     protected static void processFile(String filename) throws IOException {
         // Setup UDP Sender
-        sender = new UDPSender("localhost", udpPort);
+        sender = new UDPSender(host, udpPort);
         sender.start();
         
 

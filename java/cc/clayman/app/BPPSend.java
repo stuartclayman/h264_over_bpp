@@ -19,6 +19,8 @@ public class BPPSend {
     // Default is STDIN
     static String filename = "-";
 
+    // send host
+    static String host = "localhost";
     // send port
     static int udpPort = 6799;
 
@@ -49,6 +51,11 @@ public class BPPSend {
                     // Input filename
                     argc++;
                     filename = args[argc];
+
+                } else if (arg0.equals("-h")) {
+                        // Host
+                        argc++;
+                        host = args[argc];
 
                 } else if (arg0.equals("-p")) {
                     // Port
@@ -156,7 +163,7 @@ public class BPPSend {
     }
 
     static void usage() {
-        System.err.println("BPPSend [-f [-|filename]] [-e|-d|-i|-I] [-s sleep|-r rate|-a] [-z packetSize]  [-p port]");
+        System.err.println("BPPSend [-f [-|filename]] [-s sleep|-r rate|-a] [-z packetSize] [-h host]  [-p port] [-Pe|-Pd|-Pi|-Pf]");
         System.exit(1);
     }
 
@@ -167,7 +174,7 @@ public class BPPSend {
         ChunkInfo chunk = null;
         
         // Setup UDP Sender
-        sender = new UDPSender("localhost", udpPort);
+        sender = new UDPSender(host, udpPort);
         sender.start();
         
         // Configure ChunkPacketizer
