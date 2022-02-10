@@ -26,13 +26,17 @@ Very Lightweight Network & Service Platform.
 
 ## Useful interations
 
-H264Parse  _Prints out info on an H264 file_
+**H264Parse**  _Prints out info on an H264 file_
 
-BPPSend  -->   BPPListen   _Prints out BPP received info_
+**BPPSend  -->   BPPListen**   _Prints out BPP received info._
 
-BPPSend  -->   H264Listen  _Reconstructs H264 video from BPP packets, and outputs to a file_
+**BPPSend  -->   H264Listen**  _Reconstructs H264 video from BPP packets,
+and outputs to a file.  All chunks are post-processed, and any lost
+chunks will cause the containing NAL to not be written out to the file._ 
 
-UDPSend  -->   UDPListen   _Outputs data from UDP packets into a file_
+**UDPSend  -->   UDPListen**   _Outputs data from UDP packets into a
+file. All received packets are written directly to the file. Loss will
+cause holes in the H264 stream._
 
 
 ## Usage
@@ -76,9 +80,10 @@ _Listen for BPP packets and construct an H264 file_\
 
 `java cc.clayman.app.BPPSend -f filename`
 
-BPPSend [-s sleep|-r rate] [-f filename] [-p port]  [-z packetSize] [-Pe|-Pd|-Pi|-Pf]\
+BPPSend [-s sleep|-r rate] [-f filename] [-h host] [-p port]  [-z packetSize] [-Pe|-Pd|-Pi|-Pf]\
 _Send a video file over BPP_\
 **-f** filename Read data from file.  Use - for stdin.  Default: stdin\
+**-h** host Send host.  Default: localhost\
 **-p** port Send port.  Default: 6799\
 **-z** Packet size.  Default: 1500\
 **-r** rate No of packets per second\
@@ -102,10 +107,11 @@ _Listen for UDP packets_\
 
 `java cc.clayman.app.UDPSend  -f filename`
 
-UDPSend [-s sleep] [-f filename] [-p port] [-z packetSize]\
+UDPSend [-s sleep] [-f filename] [-h host] [-p port] [-z packetSize]\
 _Send a video file over UDP_\
 **-s** inter packet sleep (in milliseconds).  Default: 7\
 **-f** filename Read data from file.  Use - for stdin.  Default: stdin\
+**-h** host Send host.  Default: localhost\
 **-p** port Send port.  Default: 6799\
 **-z** Packet size.  Default: 1500\
 **-c** cols No of columns for output.  Default: 80
