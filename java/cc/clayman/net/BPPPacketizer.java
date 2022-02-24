@@ -51,7 +51,7 @@ public class BPPPacketizer implements ChunkPacketizer {
     public int getPayloadSize() {
         // Ethernet payload (1500) - IP_HEADER - UDP_HEADER - BLOCK_HEADER_SIZE
         // - COMMAND_BLOCK_SIZE - (chunkCount * METADATA_BLOCK_SIZE)
-        return IP.BASIC_PACKET_SIZE - IP.IP_HEADER - IP.UDP_HEADER - headerByteCount;
+        return packetSize - IP.IP_HEADER - IP.UDP_HEADER - headerByteCount;
     }
     
     /**
