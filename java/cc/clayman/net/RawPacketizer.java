@@ -54,7 +54,7 @@ public class RawPacketizer implements ChunkPacketizer {
     public int getPayloadSize() {
         // Ethernet payload (1500) - IP_HEADER - UDP_HEADER
         // - HEADER_SIZE (4 byte header)
-        return IP.BASIC_PACKET_SIZE - IP.IP_HEADER - IP.UDP_HEADER - headerByteCount;
+        return packetSize - IP.IP_HEADER - IP.UDP_HEADER - headerByteCount;
     }
     
     /**
