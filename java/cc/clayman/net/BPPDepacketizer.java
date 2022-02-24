@@ -43,7 +43,7 @@ public class BPPDepacketizer implements ChunkDepacketizer {
      * This is the no of payload bytes the  packet contains, excluding the headers.
      */
     public int getPayloadSize() {
-        return packet.getLength() - IP.BASIC_PACKET_SIZE - IP.IP_HEADER - IP.UDP_HEADER - BPP.BLOCK_HEADER_SIZE - BPP.COMMAND_BLOCK_SIZE - (chunkCount * BPP.METADATA_BLOCK_SIZE);
+        return packet.getLength() - IP.IP_HEADER - IP.UDP_HEADER - BPP.BLOCK_HEADER_SIZE - BPP.COMMAND_BLOCK_SIZE - (chunkCount * BPP.METADATA_BLOCK_SIZE);
     }
     
     /**
