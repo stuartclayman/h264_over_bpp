@@ -105,22 +105,18 @@ public class BPPSend {
 
                     if (arg0.equals("-Pe")) {
                         // Use Even chunk packing strategy
-                        argc++;
                         calculator = new EvenSplit();
 
                     } else if (arg0.equals("-Pd")) {
                         // Use Dynamic split chunk packing strategy
-                        argc++;
                         calculator = new DynamicSplit();
 
                     } else if (arg0.equals("-Pi")) {
                         // Use In order chunk  strategy
-                        argc++;
                         calculator = new InOrder();
 
                     } else if (arg0.equals("-Pf")) {
                         // Use In order chunk and full packing strategy
-                        argc++;
                         calculator = new InOrderPacked();
 
                     } else {
