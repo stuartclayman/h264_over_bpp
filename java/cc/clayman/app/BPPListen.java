@@ -127,7 +127,8 @@ public class BPPListen {
         while (streamer.hasNext()) {
             lastTime = System.currentTimeMillis();
             
-            ChunkInfo chunk = streamer.next();
+            // UDPChunkStreamer returns SVCChunkInfo
+            SVCChunkInfo chunk = (SVCChunkInfo)streamer.next();
 
             if (chunk != null) {
                 count++;
@@ -148,7 +149,7 @@ public class BPPListen {
 
     }
         
-    protected static void printChunk(ChunkInfo chunk, int count, int total, int payloadSize) {
+    protected static void printChunk(SVCChunkInfo chunk, int count, int total, int payloadSize) {
         
         // try and find the no of columns from the Environment
         String columnsEnv = System.getenv("COLUMNS");

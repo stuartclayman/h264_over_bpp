@@ -9,17 +9,12 @@ import java.nio.ByteBuffer;
 import cc.clayman.h264.NALType;
 
 /*
- * An class for creating a single Chunk.
- * It may contain 1 or more whole NALs,
- * or 1 NAL that is fragmented.
+ * An class for creating a Multiple Chunks.
  *
- * This is like SingleChunkInfo but is actually a wrapper around ChunkContent.
+ * This is a ChunkInfo that is actually a wrapper around multiple ChunkContents.
  */
 public class MultiChunkInfo implements ChunkInfo {
-    int startNAL;               // The NAL number in the stream.  Starts at 1.
-    int nalCount;               // How many NALs in this Chunk
     int sequenceNo;             // The sequence number
-    NALType type;               // Is it VCL or non-VCL
 
     ChunkContent[] content;       // The content of a Chunk
 
@@ -213,51 +208,6 @@ public class MultiChunkInfo implements ChunkInfo {
     }
 
     
-    /**
-     * Get the type of NALs in this chunk.
-     */
-    public NALType getNALType() {
-        return type;
-    }
-    
-    /**
-     * Get the type of NALs in this chunk.
-     */
-    public ChunkInfo setNALType(NALType type) {
-        this.type = type;
-        return this;
-    }
-    
-    /**
-     * Get the start NAL number in this Chunk
-     */
-    public int getNALNumber() {
-        return startNAL;
-    }
-
-    /**
-     * Set the start NAL number in this Chunk
-     */
-    public ChunkInfo setNALNumber(int nalNo) {
-        this.startNAL = nalNo;
-        return this;
-    }
-
-    /**
-     * Get the no of NALs in this Chunk
-     */
-    public int getNALCount() {
-        return nalCount;
-    }
-
-    /**
-     * Set the no of NALs in this Chunk
-     */
-    public ChunkInfo setNALCount(int nalCount) {
-        this.nalCount = nalCount;
-        return this;
-    }
-
     /**
      * Get the sequence number in this Chunk
      */

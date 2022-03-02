@@ -106,7 +106,7 @@ public class TestMNP2 {
 
         int count = 0;
         int total = 0;
-        ChunkInfo chunk = null;
+        SVCChunkInfo chunk = null;
         
         while (nalProcessor.hasNext()) {
 
@@ -127,7 +127,7 @@ public class TestMNP2 {
         stream.close();
     }
     
-    protected static void printChunk(ChunkInfo chunk, int count, int total, int payloadSize) {
+    protected static void printChunk(SVCChunkInfo chunk, int count, int total, int payloadSize) {
         
         // try and find the no of columns from the Environment
         String columnsEnv = System.getenv("COLUMNS");

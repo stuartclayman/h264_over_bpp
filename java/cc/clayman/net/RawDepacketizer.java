@@ -8,9 +8,9 @@ package cc.clayman.net;
 import java.net.DatagramPacket;
 import java.nio.ByteBuffer;
 
-import cc.clayman.chunk.ChunkInfo;
+import cc.clayman.chunk.SVCChunkInfo;
 import cc.clayman.chunk.ChunkContent;
-import cc.clayman.chunk.MultiChunkInfo;
+import cc.clayman.chunk.SVCChunks;
 import cc.clayman.h264.NALType;
 import cc.clayman.net.IP;
 
@@ -54,7 +54,7 @@ public class RawDepacketizer implements ChunkDepacketizer {
      * Convert a DatagramPacket into a ChunkInfo 
      * @throws UnsupportedOperationException if it can't work out what to do
      */
-    public ChunkInfo convert(DatagramPacket packet) throws UnsupportedOperationException {
+    public SVCChunkInfo convert(DatagramPacket packet) throws UnsupportedOperationException {
         this.packet = packet;
         count++;
         
@@ -95,7 +95,7 @@ public class RawDepacketizer implements ChunkDepacketizer {
         }
         
         // Create a ChunkInfo
-        ChunkInfo chunk = new MultiChunkInfo(1, getPayloadSize());
+        SVCChunkInfo chunk = new SVCChunks(1, getPayloadSize());
         chunk.setNALType(nalType);
         chunk.setNALNumber(nalNo);
         chunk.setNALCount(nalCount);

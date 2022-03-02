@@ -33,7 +33,7 @@ public class TestMNP1 {
 
         int count = 0;
         int total = 0;
-        ChunkInfo chunk = null;
+        SVCChunkInfo chunk = null;
         
         while (nalProcessor.hasNext()) {
 
@@ -48,7 +48,7 @@ public class TestMNP1 {
         str.close();
     }
     
-    protected static void printChunk(ChunkInfo chunk, int count, int total) {
+    protected static void printChunk(SVCChunkInfo chunk, int count, int total) {
 
         System.out.printf("%-8d", count);               // N
         System.out.printf("%-10s", chunk.getNALType());               // type

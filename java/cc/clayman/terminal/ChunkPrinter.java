@@ -6,11 +6,11 @@
 package cc.clayman.terminal;
 
 import java.io.PrintStream;
-import cc.clayman.chunk.ChunkInfo;
+import cc.clayman.chunk.SVCChunkInfo;
 
 
 /**
- * Print a ChunkInfo to an OutputStream
+ * Print a SVCChunkInfo to an OutputStream
  */
 public class ChunkPrinter {
     PrintStream outputStream;
@@ -35,7 +35,7 @@ public class ChunkPrinter {
     }
 
 
-    public void printChunk(ChunkInfo chunk, int count, int total, int payloadSize) {
+    public void printChunk(SVCChunkInfo chunk, int count, int total, int payloadSize) {
         
         // try and find the no of columns from the Environment
         String columnsEnv = System.getenv("COLUMNS");

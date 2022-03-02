@@ -109,7 +109,7 @@ public class TestNetR2 {
         while ((packet = receiver.getPacket()) != null) {
             lastTime = System.currentTimeMillis();
             
-            ChunkInfo chunk = depacketizer.convert(packet);
+            SVCChunkInfo chunk = (SVCChunkInfo)depacketizer.convert(packet);
 
             count++;
 

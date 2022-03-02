@@ -5,7 +5,7 @@
 
 package cc.clayman.terminal;
 
-import cc.clayman.chunk.ChunkInfo;
+import cc.clayman.chunk.SVCChunkInfo;
 import cc.clayman.chunk.ChunkContent;
 import cc.clayman.h264.NALType;
 import cc.clayman.util.ANSI;
@@ -46,9 +46,9 @@ public class ChunkDisplay {
     }
 
     /**
-     * Display a ChunkInfo
+     * Display a SVCChunkInfo
      */
-    public int display(ChunkInfo chunk) {
+    public int display(SVCChunkInfo chunk) {
         int totalOut = 0;
         
         calculateBytesPerChar();

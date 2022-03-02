@@ -13,7 +13,7 @@ import cc.clayman.h264.NALType;
  * It may contain 1 or more whole NALs,
  * or 1 NAL that is fragmented.
  *
- * This is like SingleChunkInfo but is actually a wrapper around ChunkContent.
+ * This is actually a wrapper around one ChunkContent.
  */
 public class SingleChunkInfo implements ChunkInfo {
     int startNAL;               // The NAL number in the stream.  Starts at 1.

@@ -6,6 +6,7 @@
 package cc.clayman.net;
 
 import cc.clayman.chunk.ChunkInfo;
+import cc.clayman.chunk.SVCChunkInfo;
 import cc.clayman.chunk.ChunkContent;
 import cc.clayman.h264.NALType;
 import cc.clayman.net.IP;
@@ -13,7 +14,7 @@ import cc.clayman.bpp.BPP;
 import cc.clayman.util.Verbose;
 
 /**
- * Take ChunkInfo objects and converts them into a BPP packet.
+ * Take SVCChunkInfo objects and converts them into a BPP packet.
  */
 public class BPPPacketizer implements ChunkPacketizer {
     
@@ -71,10 +72,12 @@ public class BPPPacketizer implements ChunkPacketizer {
     }
     
     /**
-     * Convert a ChunkInfo into byte[]
+     * Convert a SVCChunkInfo into byte[]
      * @throws UnsupportedOperationException if the Chunk is too big to fit in a packet
      */
-    public byte[] convert(int sequence, ChunkInfo chunk) throws UnsupportedOperationException {
+    public byte[] convert(int sequence, ChunkInfo svcChunk) throws UnsupportedOperationException {
+        SVCChunkInfo chunk = (SVCChunkInfo)svcChunk;
+        
         count++;
 
         // How many bytes will the packet really need

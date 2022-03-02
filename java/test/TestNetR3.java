@@ -121,7 +121,7 @@ public class TestNetR3 {
         while ((packet = receiver.getPacket()) != null) {
             lastTime = System.currentTimeMillis();
             
-            ChunkInfo chunk = depacketizer.convert(packet);
+            SVCChunkInfo chunk = (SVCChunkInfo)depacketizer.convert(packet);
             
             NALType type = chunk.getNALType();
             int nalNo = chunk.getNALNumber();

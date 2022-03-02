@@ -128,7 +128,7 @@ public class UDPSend {
 
         int count = 0;
         int total = 0;
-        ChunkInfo chunk = null;
+        SVCChunkInfo chunk = null;
         
         // Configure ChunkPacketizer
         packetizer = new RawPacketizer(packetSize);
@@ -162,7 +162,8 @@ public class UDPSend {
 
         while (nalProcessor.hasNext()) {
 
-            chunk = nalProcessor.next();
+            // The MultiNALProcessor returns SVCChunkInfo objects
+            chunk = (SVCChunkInfo)nalProcessor.next();
             count++;
 
             total += chunk.offset();
@@ -188,7 +189,7 @@ public class UDPSend {
 
     }
     
-    protected static void printChunk(ChunkInfo chunk, int count, int total) {
+    protected static void printChunk(SVCChunkInfo chunk, int count, int total) {
 
         System.out.printf("%-8d", count);               // N
         System.out.printf("%-10s", chunk.getNALType());               // type
@@ -198,7 +199,7 @@ public class UDPSend {
         System.out.println();
     }
     
-    protected static void printChunk(ChunkInfo chunk, int count, int total, int payloadSize) {
+    protected static void printChunk(SVCChunkInfo chunk, int count, int total, int payloadSize) {
         
         // try and find the no of columns from the Environment
         String columnsEnv = System.getenv("COLUMNS");

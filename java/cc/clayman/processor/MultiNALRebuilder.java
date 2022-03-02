@@ -15,6 +15,7 @@ import cc.clayman.h264.NAL;
 import cc.clayman.h264.NALType;
 import cc.clayman.h264.H264InputStream;
 import cc.clayman.chunk.ChunkInfo;
+import cc.clayman.chunk.SVCChunkInfo;
 import cc.clayman.chunk.ChunkContent;
 import cc.clayman.chunk.ChunkStreamer;
 import cc.clayman.chunk.ChunkInfoMethod;
@@ -119,7 +120,8 @@ public class MultiNALRebuilder implements NALRebuilder {
                 // loop through chunks, until there is no more to do
                 while (moreToDo) {
                     // Get a chunk from the streamer
-                    ChunkInfo chunk = chunkStreamer.next();
+                    // The chunkStreamer returns a SVCChunkInfo
+                    SVCChunkInfo chunk = (SVCChunkInfo)chunkStreamer.next();
 
                     if (chunk == null) {
                         // the streamer has hit EOF
@@ -266,7 +268,9 @@ public class MultiNALRebuilder implements NALRebuilder {
      * Take a ChunkInfo and try to rebuild some NALs.
      * A ChunkInfo is passed in, and potentially some NALs are passed back.
      */
-    public RebuildState process(ChunkInfo chunk) {
+    public RebuildState process(ChunkInfo svcChunk) {
+        SVCChunkInfo chunk = (SVCChunkInfo)svcChunk;
+        
         NALType nalType = chunk.getNALType();
         int nalCount = chunk.getNALCount();
         int nalNumber = chunk.getNALNumber();

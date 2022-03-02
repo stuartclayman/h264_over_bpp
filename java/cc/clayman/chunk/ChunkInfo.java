@@ -10,7 +10,7 @@ import java.nio.ByteBuffer;
 import cc.clayman.h264.NALType;
 
 /*
- * An interface for ChunkInfo
+ * An interface for Info about Chunks.
  */
 public interface ChunkInfo {
 
@@ -40,17 +40,6 @@ public interface ChunkInfo {
      */
     public ChunkContent addPayload(ByteBuffer buf) throws UnsupportedOperationException;
 
-    
-    /**
-     * Get the type of NALs in this chunk.
-     */
-    public NALType getNALType();
-
-    /**
-     * Get the type of NALs in this chunk.
-     */
-    public ChunkInfo setNALType(NALType type);
-
     /**
      * Get the sequence number in this Chunk
      */
@@ -61,26 +50,6 @@ public interface ChunkInfo {
      */
     public ChunkInfo setSequenceNumber(int seqNo);
     
-    /**
-     * Get the start NAL number in this Chunk
-     */
-    public int getNALNumber();
-
-    /**
-     * Set the start NAL number in this Chunk
-     */
-    public ChunkInfo setNALNumber(int nalNo);
-
-    /**
-     * Get the no of NALs in this Chunk
-     */
-    public int getNALCount();
-
-    /**
-     * Set the no of NALs in this Chunk
-     */
-    public ChunkInfo setNALCount(int nalCount);
-
     /**
      * The no of ChunkContent elements
      */

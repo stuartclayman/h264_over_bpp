@@ -84,7 +84,7 @@ public class TestNetRB2 {
         while (streamer.hasNext()) {
             lastTime = System.currentTimeMillis();
             
-            ChunkInfo chunk = streamer.next();
+            SVCChunkInfo chunk = (SVCChunkInfo)streamer.next();
 
             if (chunk != null) {
                 count++;

@@ -160,7 +160,8 @@ public class UDPListen {
         while ((packet = receiver.getPacket()) != null) {
             lastTime = System.currentTimeMillis();
             
-            ChunkInfo chunk = depacketizer.convert(packet);
+            // RawDepacketizer returns SVCChunkInfos
+            SVCChunkInfo chunk = (SVCChunkInfo)depacketizer.convert(packet);
             
             NALType type = chunk.getNALType();
             int nalNo = chunk.getNALNumber();
@@ -333,7 +334,7 @@ public class UDPListen {
 
     }
 
-    protected static void printChunk(ChunkInfo chunk, int count, int total, int payloadSize) {
+    protected static void printChunk(SVCChunkInfo chunk, int count, int total, int payloadSize) {
         
         // try and find the no of columns from the Environment
         String columnsEnv = System.getenv("COLUMNS");

@@ -13,8 +13,10 @@ import cc.clayman.h264.H264InputStream;
 import cc.clayman.h264.NAL;
 import cc.clayman.h264.NALType;
 import cc.clayman.chunk.ChunkInfo;
+import cc.clayman.chunk.SVCChunkInfo;
 import cc.clayman.chunk.ChunkContent;
 import cc.clayman.chunk.SingleChunkInfo;
+import cc.clayman.chunk.SVCChunks;
 import cc.clayman.net.IP;
 
 
@@ -42,7 +44,7 @@ public class SingleNALProcessor implements NALProcessor, Iterator {
     ByteBuffer nalBuffer = null;
 
     // The current ChunkInfo
-    ChunkInfo chunk = null;
+    SVCChunkInfo chunk = null;
     
     // The H264InputStream has hit EOF, so no more to do
     boolean finished = false;
@@ -112,7 +114,7 @@ public class SingleNALProcessor implements NALProcessor, Iterator {
     /**
      * Returns the next element in the iteration.
      */
-    public ChunkInfo next() {
+    public SVCChunkInfo next() {
         // We can loop over NALs until we fill the ChunkInfo
         // or see a different type of NAL
 
@@ -151,7 +153,7 @@ public class SingleNALProcessor implements NALProcessor, Iterator {
                 // If there's something in the chunk, return the ChunkInfo
                 if (chunk.remaining() < chunk.size()) {
                     // Cleanup and return the Chunk
-                    ChunkInfo retVal = chunk;
+                    SVCChunkInfo retVal = chunk;
 
                     // Allocate a new ChunkInfo for next ime
                     chunk = allocateChunkInfo(contentSize);
@@ -172,7 +174,7 @@ public class SingleNALProcessor implements NALProcessor, Iterator {
                 if (nalSpace > chunk.remaining()) {
                     // Not enough room
                     // So cleanup and return the Chunk
-                    ChunkInfo retVal = chunk;
+                    SVCChunkInfo retVal = chunk;
 
                     chunk = null;
                     
@@ -197,7 +199,7 @@ public class SingleNALProcessor implements NALProcessor, Iterator {
                 boolean anyFull = chunk.anyFull();
 
                 // Cleanup and return the Chunk
-                ChunkInfo retVal = chunk;
+                SVCChunkInfo retVal = chunk;
 
                 chunk = null;
                     
@@ -256,8 +258,8 @@ public class SingleNALProcessor implements NALProcessor, Iterator {
     /**
      * Allocate a new Chunk Info
      */
-    protected ChunkInfo allocateChunkInfo(int size) {
-        ChunkInfo chunk = new SingleChunkInfo(size); // new BasicChunkInfo(size); //
+    protected SVCChunkInfo allocateChunkInfo(int size) {
+        SVCChunkInfo chunk = new SVCChunks(1, size); // new SingleChunkInfo(size); // new BasicChunkInfo(size); //
         chunk.setNALType(currentNAL.getTypeClass());
 
         return chunk;

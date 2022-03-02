@@ -8,9 +8,9 @@ package cc.clayman.net;
 import java.net.DatagramPacket;
 import java.nio.ByteBuffer;
 
-import cc.clayman.chunk.ChunkInfo;
+import cc.clayman.chunk.SVCChunkInfo;
 import cc.clayman.chunk.ChunkContent;
-import cc.clayman.chunk.MultiChunkInfo;
+import cc.clayman.chunk.SVCChunks;
 import cc.clayman.h264.NALType;
 import cc.clayman.net.IP;
 import cc.clayman.bpp.BPP;
@@ -50,7 +50,7 @@ public class BPPDepacketizer implements ChunkDepacketizer {
      * Convert a DatagramPacket into a ChunkInfo 
      * @throws UnsupportedOperationException if it can't work out what to do
      */
-    public ChunkInfo convert(DatagramPacket packet) throws UnsupportedOperationException {
+    public SVCChunkInfo convert(DatagramPacket packet) throws UnsupportedOperationException {
         this.packet = packet;
         count++;
         
@@ -186,7 +186,7 @@ public class BPPDepacketizer implements ChunkDepacketizer {
         
         // Create a ChunkInfo
         // Pass in array of sizes
-        ChunkInfo chunk = new MultiChunkInfo(contentSizes);
+        SVCChunkInfo chunk = new SVCChunks(contentSizes);
 
         // bufPos now should be at first content
 

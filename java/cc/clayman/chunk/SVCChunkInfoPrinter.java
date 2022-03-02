@@ -1,7 +1,7 @@
-// ChunkInfoPrinter.java
+// SVCChunkInfoPrinter.java
 // Author: Stuart Clayman
 // Email: s.clayman@ucl.ac.uk
-// Date: December 2021
+// Date: Feb 2022
 
 package cc.clayman.chunk;
 
@@ -9,17 +9,18 @@ package cc.clayman.chunk;
  * An implementation of ChunkInfoMethod that prints out
  * info to System.err
  */
-public class ChunkInfoPrinter implements ChunkInfoMethod {
+public class SVCChunkInfoPrinter implements ChunkInfoMethod {
     int count = 0;
     int total = 0;
         
     /**
      * Call the method
      */
-    public Object call(ChunkInfo chunk) {
-        if (chunk == null) {
+    public Object call(ChunkInfo svcChunk) {
+        if (svcChunk == null) {
             return null;
         } else {
+            SVCChunkInfo chunk = (SVCChunkInfo)svcChunk;
 
             count++;
             total += chunk.offset();
@@ -32,6 +33,8 @@ public class ChunkInfoPrinter implements ChunkInfoMethod {
 
             System.err.printf("%-6d", count);                           // N
             System.err.printf(" %-10d", total);                         // total bytes
+
+            System.err.printf("%-8s", chunk.getNALType());              // type
 
             System.err.printf("%-6d", chunk.offset());                  // content size
 

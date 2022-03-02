@@ -84,7 +84,7 @@ public class TestNetRB1 {
             
             count++;
 
-            ChunkInfo chunk = depacketizer.convert(packet);
+            SVCChunkInfo chunk = (SVCChunkInfo)depacketizer.convert(packet);
 
             total += chunk.offset();
 

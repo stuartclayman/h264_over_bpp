@@ -50,7 +50,7 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
     ByteBuffer nalBuffer = null;
 
     // The current ChunkInfo
-    ChunkInfo chunk = null;
+    SVCChunkInfo chunk = null;
 
     // A potential callback
     ChunkInfoMethod onChunk = null;
@@ -188,14 +188,14 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
     /**
      * Returns the next element in the iteration.
      */
-    public ChunkInfo next() {
+    public SVCChunkInfo next() {
         if (Verbose.level >= 2) {
             System.err.println("  next()");
         }
         
         // We can loop over NALs until we fill the ChunkInfo
         // or see a different type of NAL
-        ChunkInfo chunkInfo = innerNext();
+        SVCChunkInfo chunkInfo = innerNext();
 
         if (chunkInfo == null) {
             return null;
@@ -212,7 +212,7 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
 
 
     
-    protected ChunkInfo innerNext() {
+    protected SVCChunkInfo innerNext() {
         while (true) {
             // get a NAL
             if (currentNAL == null) {
@@ -269,7 +269,7 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
                 if (chunk.remaining() < chunk.size()) {
                     // Cleanup and return the Chunk
                     chunk.setNALCount(nalCount);
-                    ChunkInfo retVal = chunk;
+                    SVCChunkInfo retVal = chunk;
 
                     // Allocate a new ChunkInfo for next ime
                     chunk = allocateChunkInfo(contentSize);
@@ -297,7 +297,7 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
                     // Not enough room
                     // So cleanup and return the Chunk
                     chunk.setNALCount(nalCount);
-                    ChunkInfo retVal = chunk;
+                    SVCChunkInfo retVal = chunk;
 
                     chunk = null;
                     nalCount = 0;
@@ -365,7 +365,7 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
 
                 // Cleanup and return the Chunk
                 chunk.setNALCount(nalCount);
-                ChunkInfo retVal = chunk;
+                SVCChunkInfo retVal = chunk;
 
                 chunk = null;
                 nalCount = 0;
@@ -502,8 +502,8 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
     /**
      * Allocate a new Chunk Info
      */
-    protected ChunkInfo allocateOneChunkInfo(int size) {
-        ChunkInfo chunk = new MultiChunkInfo(1, size);
+    protected SVCChunkInfo allocateOneChunkInfo(int size) {
+        SVCChunkInfo chunk = new SVCChunks(1, size);
         chunk.setNALType(currentNAL.getTypeClass());
 
         return chunk;
@@ -512,10 +512,10 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
     /**
      * Allocate a new Chunk Info
      */
-    protected ChunkInfo allocateChunkInfo(int size) {
+    protected SVCChunkInfo allocateChunkInfo(int size) {
         // The simple way to do the allocation
-        // The MultiChunkInfo will split the space evenly
-        //ChunkInfo chunk = new MultiChunkInfo(noOfVCLs, size);
+        // The SVCChunks will split the space evenly
+        //ChunkInfo chunk = new SVCChunks(noOfVCLs, size);
 
         // A better way is to see if we can adjust the space dynamically
         // If any NAL buffers are used up, we can split the remaining space in accordance
@@ -532,7 +532,7 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
                    
         */
 
-        ChunkInfo chunk = new MultiChunkInfo(chunkSizes);
+        SVCChunkInfo chunk = new SVCChunks(chunkSizes);
         
         chunk.setNALType(currentNAL.getTypeClass());
 

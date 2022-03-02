@@ -184,7 +184,7 @@ public class BPPSend {
     protected static void processFile(String filename) throws IOException {
         int count = 0;
         int total = 0;
-        ChunkInfo chunk = null;
+        SVCChunkInfo chunk = null;
         
         // Setup UDP Sender
         sender = new UDPSender(host, udpPort);
@@ -273,10 +273,10 @@ public class BPPSend {
 
     }
     
-    protected static void infoChunk(ChunkInfo chunk, int count, int total) {
+    protected static void infoChunk(SVCChunkInfo chunk, int count, int total) {
     }
     
-    protected static void printChunk(ChunkInfo chunk, int count, int total, int payloadSize) {
+    protected static void printChunk(SVCChunkInfo chunk, int count, int total, int payloadSize) {
         
         // try and find the no of columns from the Environment
         String columnsEnv = System.getenv("COLUMNS");

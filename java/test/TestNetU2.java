@@ -75,7 +75,7 @@ public class TestNetU2 {
 
         int count = 0;
         int total = 0;
-        ChunkInfo chunk = null;
+        SVCChunkInfo chunk = null;
         
         // Configure ChunkPacketizer
         packetizer = new RawPacketizer(1500);
@@ -113,7 +113,7 @@ public class TestNetU2 {
 
     }
     
-    protected static void printChunk(ChunkInfo chunk, int count, int total) {
+    protected static void printChunk(SVCChunkInfo chunk, int count, int total) {
 
         System.out.printf("%-8d", count);               // N
         System.out.printf("%-10s", chunk.getNALType());               // type
