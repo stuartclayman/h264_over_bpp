@@ -25,15 +25,15 @@ public class BPPSend {
     static int udpPort = 6799;
 
     static UDPSender sender = null;
-    static int sleep = 7;       // default sleep (in milliseconds) between chunks
+    static int sleep = 7;                 // default sleep (in milliseconds) between chunks
     static boolean adaptiveSleep = false; // show we do adaptive sleep
-    static int packetsPerSecond = 0;
+    static int packetsPerSecond = 0;      // no of packets per second
+    static int columns = 80;              // default no of cols on terminal
+    static int packetSize = 1500;         // packet size
+    static int nalsPerFrame = 3;          // no of NALs per frame
+
     static ChunkPacketizer packetizer = null;
     static ChunkSizeCalculator calculator = null;
-    static int columns = 80;    // default no of cols on terminal
-    static int packetSize = 1500;  // packet size
-
-
     
 
     public static void main(String[] args) {
@@ -101,6 +101,13 @@ public class BPPSend {
                     columns = Integer.parseInt(val);
 
                     
+                } else if (arg0.equals("-N")) {            
+                    // nals per frame
+                    argc++;
+
+                    String val = args[argc];
+                    nalsPerFrame = Integer.parseInt(val);
+
                 } else if (arg0.startsWith("-P")) {
 
                     if (arg0.equals("-Pe")) {
@@ -145,7 +152,9 @@ public class BPPSend {
 
 
         if (Verbose.level >= 2) {
+            System.err.println("Send host: " + host);
             System.err.println("Send on port: " + udpPort);
+            System.err.println("NALs per frame: " + nalsPerFrame);
             System.err.println("Packet size: " + packetSize);
             System.err.println("Columns: " + columns);
             System.err.println("Adaptive Sleep: " + (adaptiveSleep ? "ON" : "OFF"));
@@ -159,7 +168,7 @@ public class BPPSend {
     }
 
     static void usage() {
-        System.err.println("BPPSend [-f [-|filename]] [-s sleep|-r rate|-a] [-z packetSize] [-h host]  [-p port] [-Pe|-Pd|-Pi|-Pf]");
+        System.err.println("BPPSend [-f [-|filename]] [-h host]  [-p port] [-s sleep|-r rate|-a] [-z packetSize] [-N nals] [-Pe|-Pd|-Pi|-Pf]");
         System.exit(1);
     }
 
@@ -175,7 +184,7 @@ public class BPPSend {
         
         // Configure ChunkPacketizer
         // 1500 byte packets / 3 chunks
-        packetizer = new BPPPacketizer(packetSize, 3);
+        packetizer = new BPPPacketizer(packetSize, nalsPerFrame);
 
         // Open a H264InputStream
         H264InputStream str = null;
@@ -197,7 +206,7 @@ public class BPPSend {
 
         
         // MultiNALProcessor - payload size from packetizer, 3 chunks
-        MultiNALProcessor nalProcessor = new MultiNALProcessor(str, packetizer.getPayloadSize(), 3);
+        MultiNALProcessor nalProcessor = new MultiNALProcessor(str, packetizer.getPayloadSize(), nalsPerFrame);
 
         // did user specify a ChunkSizeCalculator
         if (calculator != null) {

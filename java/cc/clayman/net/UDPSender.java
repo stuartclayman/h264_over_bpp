@@ -191,7 +191,9 @@ public class UDPSender implements Runnable {
 
         try {
             // Create a DatagramPacket
-            DatagramPacket packet = new DatagramPacket(recvArray, recvArray.length);
+            // Set inetAddr and port
+            // Although we did a connect(), some platforms don't seem to do it properly.
+            DatagramPacket packet = new DatagramPacket(recvArray, recvArray.length, inetAddr, port);
             
             // add the DatagramPacket to the queue
             packetQueue.put(packet);
