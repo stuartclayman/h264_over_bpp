@@ -22,23 +22,39 @@ public class BPPPacketizer implements ChunkPacketizer {
     final int chunkCount;
 
     final int headerByteCount;
+
+    final int videoKbps;
+    
     
     int count = 0;
 
-    public BPPPacketizer(int chunkCount) {
+    /**
+     * Create a BPPPacketizer given a chunkCount for each packet,
+     * which is equal to the no of NALs per frame,
+     * and the bandwidth of the video in kbps.
+     * The packet size is set to 1500 by default.
+     */
+    public BPPPacketizer(int chunkCount, int kbps) {
         packetSize = IP.BASIC_PACKET_SIZE;
         this.chunkCount = chunkCount;
+
+        videoKbps = kbps;
 
         headerByteCount = IP.IP_HEADER + IP.UDP_HEADER + BPP.BLOCK_HEADER_SIZE
             + BPP.COMMAND_BLOCK_SIZE + (chunkCount * BPP.METADATA_BLOCK_SIZE);
     }
 
     /**
-     * A BPPPacketizer with a packet size
+     * Create a BPPPacketizer given a chunkCount for each packet,
+     * which is equal to the no of NALs per frame,
+     * the bandwidth of the video in kbps,
+     * and with a packet size.
      */
-    public BPPPacketizer(int size, int chunkCount) {
+    public BPPPacketizer(int size, int chunkCount, int kbps) {
         packetSize = size;
         this.chunkCount = chunkCount;
+
+        videoKbps = kbps;
 
         headerByteCount = IP.IP_HEADER + IP.UDP_HEADER + BPP.BLOCK_HEADER_SIZE
             + BPP.COMMAND_BLOCK_SIZE + (chunkCount * BPP.METADATA_BLOCK_SIZE);
@@ -93,7 +109,8 @@ public class BPPPacketizer implements ChunkPacketizer {
             // Now build the 32 bit BPP Header + 24 bit Command Block
 
             // 32 bits for BPP header
-            packetBytes[0] = (byte)((0x0C << 4) & 0xFF);
+            final int version = 0x0C;
+            packetBytes[0] = (byte)((version << 4) & 0xFF);
             packetBytes[1] = (byte)(0x00);
             packetBytes[2] = (byte)((chunkCount & 0x3F) << 3);
             packetBytes[3] = (byte)(0x00);
@@ -108,8 +125,9 @@ public class BPPPacketizer implements ChunkPacketizer {
 
             // Command: 00001 = PacketWash, 00011= drop
             int command = 0x00001;
-            // Condition:  1094 Kbps -> 109.4 * 10 K
-            int condition = 110;
+            // Condition: in kbps. So 1094 Kbps -> 109.4 * 10 K ~= 109
+            // So we send Kbps / 10
+            int condition = videoKbps / 10;
 
             // Threshold: 0 - 255
             // This is used by the network node to drop chunks
@@ -129,6 +147,11 @@ public class BPPPacketizer implements ChunkPacketizer {
             // increase bufPos
             bufPos += BPP.COMMAND_BLOCK_SIZE;
 
+            if (Verbose.level >= 2) {
+                System.err.printf(" %-6d ver: 0x%04X chunkCount: %d command: 0x%05X condition: %d threshold: %d\n", count, version, chunkCount, command, condition, threshold);
+            }
+        
+
             // Visit the Content
             for (int c=0; c<content.length; c++) {
                 
@@ -137,11 +160,6 @@ public class BPPPacketizer implements ChunkPacketizer {
                 // get fragment from content
                 int fragment = content[c].getFragmentationNumber();
                 boolean isLastFragment = content[c].isLastFragment();
-
-                if (Verbose.level >= 1) {
-                    System.err.println("CHUNK: nalNo: " + (nalNo + c) + " BPP: content[" + c + "] = " + contentSize + " fragment: " + fragment + " isLastFragment: " + isLastFragment);
-                }
-
 
                 // Add per-chunk Metadata Block - 48 bits / 6 bytes 
                 //  -  22 bits (OFFi [5 bits (Chunk Offset) + 12 bits (Source Frame No) + 5 bits (Frag No)])
@@ -182,7 +200,8 @@ public class BPPPacketizer implements ChunkPacketizer {
                 packetBytes[bufPos+4] |= (byte)(((sigI & 0x0000000F) >> 0) & 0x0F);
 
                 // need 1 bit for OFi
-                packetBytes[bufPos+5] = (byte)((0 << 7) & 0xFF);
+                final boolean ofI = false;
+                packetBytes[bufPos+5] = (byte)(((ofI ? 1 : 0)<< 7) & 0xFF);
                 // need 1 bit for FFi
                 packetBytes[bufPos+5] |= (byte)(((isLastFragment ? 1 : 0) << 6) & 0xFF);
                 // need 1 bit for VCL/NONVCL
@@ -194,6 +213,12 @@ public class BPPPacketizer implements ChunkPacketizer {
                 bufPos += BPP.METADATA_BLOCK_SIZE;
 
                 
+                if (Verbose.level >= 1) {
+                    System.err.printf("  %-3dOFFi: nalNo: %d nalCount: %d fragment: %d \n", (c+1), nalNo, nalCount, fragment);
+                    System.err.printf("     CSi: contentSize: %d  SIGi:  %d\n", csI, sigI);
+                    System.err.printf("     OFi: %s FFi: %s  NAL: %s\n", ofI, isLastFragment, type);
+                }
+
             }
 
             // Visit the Content again, and add the Content

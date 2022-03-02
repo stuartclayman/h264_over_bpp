@@ -31,6 +31,7 @@ public class BPPSend {
     static int columns = 80;              // default no of cols on terminal
     static int packetSize = 1500;         // packet size
     static int nalsPerFrame = 3;          // no of NALs per frame
+    static int videoKbps = 1094;          // The bandwidth of the video file
 
     static ChunkPacketizer packetizer = null;
     static ChunkSizeCalculator calculator = null;
@@ -108,6 +109,13 @@ public class BPPSend {
                     String val = args[argc];
                     nalsPerFrame = Integer.parseInt(val);
 
+                } else if (arg0.equals("-B")) {            
+                    // bandwidth of video in kbps
+                    argc++;
+
+                    String val = args[argc];
+                    videoKbps = Integer.parseInt(val);
+
                 } else if (arg0.startsWith("-P")) {
 
                     if (arg0.equals("-Pe")) {
@@ -168,7 +176,7 @@ public class BPPSend {
     }
 
     static void usage() {
-        System.err.println("BPPSend [-f [-|filename]] [-h host]  [-p port] [-s sleep|-r rate|-a] [-z packetSize] [-N nals] [-Pe|-Pd|-Pi|-Pf]");
+        System.err.println("BPPSend [-f [-|filename]] [-h host]  [-p port] [-s sleep|-r rate|-a] [-z packetSize] [-N nals] [-B bandwidth] [-Pe|-Pd|-Pi|-Pf]");
         System.exit(1);
     }
 
@@ -184,7 +192,7 @@ public class BPPSend {
         
         // Configure ChunkPacketizer
         // 1500 byte packets / 3 chunks
-        packetizer = new BPPPacketizer(packetSize, nalsPerFrame);
+        packetizer = new BPPPacketizer(packetSize, nalsPerFrame, videoKbps);
 
         // Open a H264InputStream
         H264InputStream str = null;

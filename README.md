@@ -80,7 +80,8 @@ _Listen for BPP packets and construct an H264 file_\
 
 `java cc.clayman.app.BPPSend -f filename`
 
-BPPSend [-f filename] [-h host] [-p port] [-s sleep|-r rate] [-z packetSize] [-N nals] [-Pe|-Pd|-Pi|-Pf]\
+BPPSend [-f filename] [-h host] [-p port] [-s sleep|-r rate] [-z
+packetSize] [-N nals] [-B bandwidth] [-Pe|-Pd|-Pi|-Pf]\
 _Send a video file over BPP_\
 **-f** filename Read data from file.  Use - for stdin.  Default: stdin\
 **-h** host Send host.  Default: localhost\
@@ -90,6 +91,7 @@ _Send a video file over BPP_\
 **-s** inter packet sleep (in milliseconds).  Default: 7\
 **-a** Do adaptive sleep.  Based on chunk size and packet size.  Default: false\
 **-N** NALs per frame.  Default: 3\
+**-B** Bandwidth of the video, in kpbs.  Default: 1094\
 **-c** cols No of columns for output.  Default: 80\
 **-Pe** Even packing strategy.  Default: EvenSplit\
 **-Pd** Dynamic packing strategy\

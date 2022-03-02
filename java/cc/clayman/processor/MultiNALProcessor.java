@@ -356,6 +356,11 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
                         lastFrag[i] = true;
                         content.setLastFragment(lastFrag[i]);
                     }
+
+                    if (Verbose.level >= 1) {
+                        System.err.println("CHUNK: nalNo: " + (chunk.getNALNumber()+i) + " BPP: content[" + i + "] = " + content.offset() + " fragment: " + content.getFragmentationNumber() + " isLastFragment: " + content.isLastFragment());
+                    }
+
                 }
 
                 // Cleanup and return the Chunk
@@ -372,7 +377,6 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
                     // it's the last one
                     ejectNAL();
                 }
-                
                 
                 // Return
                 return retVal;
