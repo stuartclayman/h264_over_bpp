@@ -92,13 +92,16 @@ public class RawPacketizer implements ChunkPacketizer {
             // Get NAL type
             NALType type = chunk.getNALType();
 
+
             // Now build the header
+
+            // 24 bits for sequence no
+            packetBytes[0] = (byte)(((sequence & 0x00FF0000) >> 16) & 0xFF);
+            packetBytes[1] = (byte)(((sequence & 0x0000FF00) >> 8) & 0xFF);
+            packetBytes[2] = (byte)(((sequence & 0x000000FF) >> 0) & 0xFF);
             
-            // 32 bits for sequence no
-            packetBytes[0] = (byte)(((sequence & 0xFF000000) >> 24) & 0xFF);
-            packetBytes[1] = (byte)(((sequence & 0x00FF0000) >> 16) & 0xFF);
-            packetBytes[2] = (byte)(((sequence & 0x0000FF00) >> 8) & 0xFF);
-            packetBytes[3] = (byte)(((sequence & 0x000000FF) >> 0) & 0xFF);
+            // 7 bits for fragment no + 1 bit for last fragment
+            packetBytes[3] = (byte) 0; 
 
             // 24 bits for nalNo
             packetBytes[4] = (byte)(((nalNo & 0x00FF0000) >> 16) & 0xFF);
@@ -117,10 +120,11 @@ public class RawPacketizer implements ChunkPacketizer {
             ChunkContent[] content = chunk.getChunkContent();
 
             for (int c=0; c<content.length; c++) {
+
+                //System.err.println("content[" + c + "].getFragmentationNumber()  = " + content[c].getFragmentationNumber());
                 
                 // 7 bits for fragment no + 1 bit for last fragment
-                //packetBytes[4] = (byte) (((content[c].getFragmentationNumber() & 0xFF) << 1) | (content[c].isLastFragment() ? 0x01 : 0x0));
-
+                packetBytes[3] = (byte) (((content[c].getFragmentationNumber() & 0xFF) << 1) | (content[c].isLastFragment() ? 0x01 : 0x0));
 
 
                 // Get the payload from the ChunkContent

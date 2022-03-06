@@ -65,7 +65,7 @@ public class RawDepacketizer implements ChunkDepacketizer {
         byte seq0 = packetBytes[0];
         byte seq1 = packetBytes[1];
         byte seq2 = packetBytes[2];
-        byte seq3 = packetBytes[3];
+        byte frag = packetBytes[3];
 
         // 24 bits for nalNo
         byte b0 = packetBytes[4];
@@ -75,10 +75,13 @@ public class RawDepacketizer implements ChunkDepacketizer {
         // 7 bits for count + 1 bit for type
         byte b3 = packetBytes[7];
 
-        //System.err.printf(" 0x%02X 0x%02X 0x%02X 0x%02X \n",  packetBytes[0], packetBytes[1], packetBytes[2], packetBytes[3]);
+        //System.err.printf(" 0x%02X 0x%02X 0x%02X 0x%02X \n",  packetBytes[0], packetBytes[1], packetBytes[2], (packetBytes[3] & 0xFE) >> 1 );
 
 
-        int sequence = 0 | ((seq0 << 24)  & 0xFF000000) | ((seq1 << 16)  & 0x00FF0000) | ((seq2 << 8) & 0x0000FF00) | ((seq3 << 0) & 0x000000FF);
+        int sequence = 0 | ((seq0 << 16)  & 0x00FF0000) | ((seq1 << 8)  & 0x0000FF00) | ((seq2 << 0) & 0x000000FF);
+
+        int fragmentNo = (frag  & 0xFE) >> 1;
+        boolean lastFrag = (frag & 0x01) == 1 ? true : false;
         
         int nalNo = 0 | ((b0 << 16)  & 0x00FF0000) | ((b1 << 8) & 0x0000FF00) | ((b2 << 0) & 0x000000FF);
         
@@ -107,6 +110,12 @@ public class RawDepacketizer implements ChunkDepacketizer {
 
         // add the payload to the chunk
         chunk.addPayload(buf);
+
+        // now set fragmentNo and lastFragment
+        ChunkContent content = chunk.getChunkContent(0);
+
+        content.setFragmentationNumber(fragmentNo);
+        content.setLastFragment(lastFrag);
 
         return chunk;
         

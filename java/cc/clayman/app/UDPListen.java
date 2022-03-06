@@ -153,30 +153,111 @@ public class UDPListen {
             timer.schedule(timerTask, 1000, 1000);
         }
 
+        TemporalLayerModel model = new TemporalLayerModelGOB16();
+
         ChunkDepacketizer depacketizer = new RawDepacketizer();
 
+        NALType type = null;
+        int nalNo = 0;
+        int nalCount = 0;
+        int seqNo = 0;
+        ChunkContent content = null;
+
+        int vclCount = 0;
+        int qualityLayer = 0;
+        boolean prevIsNonVCL  = true;
+
+        int fragment = 0;           // The fragment of each vcl
         int lastSeen = 0;
+        int missingFragmentCount = 0;  // Count missing fragments
 
         while ((packet = receiver.getPacket()) != null) {
             lastTime = System.currentTimeMillis();
             
             // RawDepacketizer returns SVCChunkInfos
             SVCChunkInfo chunk = (SVCChunkInfo)depacketizer.convert(packet);
-            
-            NALType type = chunk.getNALType();
-            int nalNo = chunk.getNALNumber();
-            int nalCount = chunk.getNALCount();
-            int seqNo = chunk.getSequenceNumber();
 
-            count++;
+            // sequence
+            seqNo = chunk.getSequenceNumber();
 
-            total += chunk.offset();
+            // there are a number of boundary conditions
+            // seqNo:  what to do on missing seqNo
+            // nalNo:  what to do on next nalNo
+            // nal type:  what to do on nal type change
 
-            if (Verbose.level >= 1) {
-                System.err.println("LISTEN: RECEIVE seqNo: " + seqNo + " NALNumber: " + nalNo + " count: " + nalCount + " NALType: " + type + " lastSeen: " + lastSeen);
-            }
+            // Process packet
 
+            // did we get the next seqNo ?
             if (lastSeen+1 == seqNo) {
+                // if so, we can do further processing
+
+                // is it the next NAL ?
+                if (nalNo != chunk.getNALNumber()) {
+                    // we crossed a nalNo boundary
+
+                    // Do stuff with end of this sequence of packets
+                    // Quality info
+                    if (Verbose.level >= 1) {
+                        // was previous NAL a VCL
+                        // and there were no missing fragments
+                        if (type == NALType.VCL) {
+                            // Look at TemporalLayerModelGOB16
+                            TemporalLayerModel.Tuple currentNALModel = model.getLayerInfo(vclCount);
+
+                            if (missingFragmentCount == 0) {
+                                // No missing fragments
+                                System.err.printf("QUALITY: COLLECT VCLNo: %d FrameNo: %s Frame: %s Temporal: %s  Qualitylayer: %d Time: %d\n", vclCount, vclCount + currentNALModel.adjustment, currentNALModel.frame, currentNALModel.temporal, qualityLayer, System.nanoTime());  
+                            } else {
+                                // There were missing fragments
+                                System.err.printf("QUALITY: MISSING_FRAGMENTS VCLNo: %d FrameNo: %s Frame: %s Temporal: %s  Qualitylayer: %d Time: %d\n", vclCount, vclCount + currentNALModel.adjustment, currentNALModel.frame, currentNALModel.temporal, qualityLayer, System.nanoTime());  
+                            }
+                        
+                        }            
+                    }
+
+                    // set up for next sequence of packets with the new nalNo
+                    missingFragmentCount = 0;
+                    qualityLayer++;
+                } else {
+                    // same nalNo
+                }
+
+            
+                // get values
+                type = chunk.getNALType();
+                nalNo = chunk.getNALNumber();
+                nalCount = chunk.getNALCount();
+                // Rawdeacketizer only creates 1 ChunkContent
+                content = chunk.getChunkContent(0);
+                fragment = content.getFragmentationNumber();
+
+                // we crossed a VCL / NONVCL boundary
+                if (type == NALType.VCL) {
+                    // Keep track of no of VCLs
+                    if (prevIsNonVCL) {
+                        vclCount++;
+                        qualityLayer = 0;
+                        prevIsNonVCL = false;
+                    }
+                } else {
+                    qualityLayer = 0;
+                    prevIsNonVCL = true;
+                }
+
+
+                if (Verbose.level >= 1) {
+                    if (type == NALType.VCL) {
+                        System.err.println("LISTEN: RECEIVE seqNo: " + seqNo + " NALNumber: " + nalNo + " count: " + nalCount + " NALType: " + type + " VCL no: " + vclCount + " fragment: " + fragment );
+                    } else {
+                        System.err.println("LISTEN: RECEIVE seqNo: " + seqNo  + " NALNumber: " + nalNo + " count: " + nalCount + " NALType: " + type);
+                    }
+                }
+
+                // update variables
+                count++;
+
+                total += chunk.offset();
+
 
                 writePacketData(outputStream, packet, count, total);
 
@@ -189,13 +270,20 @@ public class UDPListen {
                 lastSeen = seqNo;
 
             } else {
+                // Some packets are missing
                 int missing = seqNo - lastSeen;
 
                 if (Verbose.level >= 1) {
                     for (int m=1; m<=missing; m++) {
+                        fragment++;
+                        missingFragmentCount++;
+
                         System.err.printf("%-18s", "LISTEN: DROPPED ");           //
-                        System.err.printf("%-8d", lastSeen + m);    // N
+                        System.err.printf("seqNo: %-8d", lastSeen + m);    // N
+                        System.err.printf(" NALNumber: %-8d", nalNo + m);    // N
+                        System.err.printf("fragment: %-8d", fragment);    // N
                 
+                        
                         System.err.println("");
                     }
                 }
