@@ -73,10 +73,9 @@ public class UDPSender implements Runnable {
             socket = new DatagramSocket(new InetSocketAddress(InetAddress.getLocalHost(), 0));
 
             if (host.equals("localhost")) {
-                socket.connect(new InetSocketAddress(InetAddress.getLocalHost().getHostAddress(), port));
-            } else {
-                socket.connect(new InetSocketAddress(InetAddress.getByName(host), port));
+                inetAddr = InetAddress.getLocalHost();
             }
+            socket = new DatagramSocket();
 
             System.err.println("UDPSender connect " +  socket.getLocalAddress() + ":" + socket.getLocalPort() + " to " + socket.getInetAddress() + ":" + socket.getPort());
             isConnected = true;
