@@ -13,8 +13,6 @@ public class H264Parse {
     // Default is STDIN
     static String filename = "-";
     
-    static boolean showQuality = false;
-    
     public static void main(String[] args) {
         if (args.length == 0) {
         } else if (args.length >= 1) {
@@ -30,9 +28,6 @@ public class H264Parse {
                     argc++;
                     filename = args[argc];
 
-                } else if (arg0.equals("-q")) {
-                    showQuality = true;
-            
                 } else if (arg0.startsWith("-v")) {
                     if (arg0.equals("-v")) {
                         Verbose.level = 1;
@@ -66,7 +61,7 @@ public class H264Parse {
     }
 
     static void usage() {
-        System.err.println("H264Parse [-f [-|filename]] [-q]");
+        System.err.println("H264Parse [-f [-|filename]]");
         System.exit(1);
     }
 
@@ -162,7 +157,7 @@ public class H264Parse {
                 // Look at TemporalLayerModelGOB16
                 TemporalLayerModel.Tuple currentNAL = model.getLayerInfo(vclCount);
 
-                if (showQuality) {
+                if (Verbose.level >= 1) {
                     System.out.printf("Frame No: %s Frame: %s Temporal: %s  Qualitylayer: %d\n", vclCount + currentNAL.adjustment, currentNAL.frame, currentNAL.temporal, qualityLayer-1);
                 }
 

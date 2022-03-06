@@ -54,10 +54,9 @@ Some examples, plus arguments.
 
 `java cc.clayman.app.H264Parse -f ~/tmp/foreman.264`
 
- H264Parse [-q] [-f filename]\
+ H264Parse  [-f filename]\
  _Print out details of an H264 file, as NALs_\
 **-f** filename Read data from file.  Use - for stdin.  Default: stdin\
-**-q** Print qualityLayer info.  Default: false
 
 
 
@@ -69,13 +68,13 @@ _Listen for BPP packets_\
 **-c** cols No of columns for output.  Default: 80
 
 
-`java cc.clayman.app.H264Listen  -f ~/tmp/sc_0.6mbps.264 -q -p 6798`
+`java cc.clayman.app.H264Listen  -f ~/tmp/sc_0.6mbps.264  -p 6798`
 
-H264Listen [-f filename] [-p port] [-q]\
+H264Listen [-f filename] [-p port]\
 _Listen for BPP packets and construct an H264 file_\
 **-f** filename Send data to file.  Use - for stdout.  Default: stdout\
 **-p** port Listen port.  Default: 6799\
-**-q** Print qualityLayer info.  Default: false
+
 
 
 `java cc.clayman.app.BPPSend -f filename`

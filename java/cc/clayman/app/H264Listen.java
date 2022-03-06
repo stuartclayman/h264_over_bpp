@@ -44,8 +44,6 @@ public class H264Listen {
     static String filename = "-";
     static NALOutputStream outputStream = null;
 
-    static boolean showQuality = false;
-
     public static void main(String[] args) {
         if (args.length == 0) {
         } else if (args.length >= 1) {
@@ -75,9 +73,6 @@ public class H264Listen {
                     String val = args[argc];
                     NO_OF_VCLS = Integer.parseInt(val);
 
-                } else if (arg0.equals("-q")) {
-                    showQuality = true;
-            
                 } else if (arg0.startsWith("-v")) {
                     if (arg0.equals("-v")) {
                         Verbose.level = 1;
@@ -111,7 +106,7 @@ public class H264Listen {
     }
 
     static void usage() {
-        System.err.println("H264Listen [-f [-|filename]] [-q] [-p port]");
+        System.err.println("H264Listen [-f [-|filename]] [-p port]");
         System.exit(1);
     }
 
@@ -213,9 +208,7 @@ public class H264Listen {
                     if (Verbose.level >= 1) {
                         System.err.println("LISTEN: WASHED " + nalResult.nalType + " " + nalResult.number + " / " + qualityLayer);
 
-                        if (showQuality) {
-                            System.err.printf("QUALITY: WASHED VCLNo: %d Qualitylayer: %d Time: %d\n", vclCount, qualityLayer, System.nanoTime());
-                        }
+                        System.err.printf("QUALITY: WASHED VCLNo: %d Qualitylayer: %d Time: %d\n", vclCount, qualityLayer, System.nanoTime());
                         
                     }
 
@@ -274,7 +267,7 @@ public class H264Listen {
                         if (droppedLayer[qualityLayer] != true)  {
                             // The NAL at this qualityLayer is not washed away
                             
-                            if (showQuality) {
+                            if (Verbose.level >= 1) {
                                 System.err.printf("QUALITY: COLLECT VCLNo: %d FrameNo: %s Frame: %s Temporal: %s  Qualitylayer: %d Time: %d\n", vclCount, vclCount + currentNALModel.adjustment, currentNALModel.frame, currentNALModel.temporal, qualityLayer, System.nanoTime());  // WAS currentTimeMillis());
                             }
 
@@ -287,9 +280,7 @@ public class H264Listen {
                             // there is a dependency
                             if (Verbose.level >= 1) {
                                 System.err.println("LISTEN: NOT_WRITING " + nalResult.number + " / " + qualityLayer);
-                            }
 
-                            if (showQuality) {
 
                                 System.err.printf("QUALITY: NOT_WRITING VCLNo: %d FrameNo: %s Frame: %s Temporal: %s  Qualitylayer: %d Time: %d\n", vclCount, vclCount + currentNALModel.adjustment, currentNALModel.frame, currentNALModel.temporal, qualityLayer, System.nanoTime());  // WAS currentTimeMillis());
                             }
