@@ -60,7 +60,6 @@ public class UDPSender implements Runnable {
         this.port = port;
         isConnected = false;
 
-        inetAddr = InetAddress.getByName(host);
     }
 
     /**
@@ -70,12 +69,15 @@ public class UDPSender implements Runnable {
         if (isConnected) {
             throw new IOException("Cannot connect again to: " + socket);
         } else {
-            socket = new DatagramSocket(new InetSocketAddress(InetAddress.getLocalHost(), 0));
+            //socket = new DatagramSocket(new InetSocketAddress(InetAddress.getLocalHost(), 0));
+            socket = new DatagramSocket();
 
             if (host.equals("localhost")) {
                 socket.connect(new InetSocketAddress(InetAddress.getLocalHost().getHostAddress(), port));
+                inetAddr = InetAddress.getLocalHost();
             } else {
                 socket.connect(new InetSocketAddress(InetAddress.getByName(host), port));
+                inetAddr = InetAddress.getByName(host);
             }
 
             System.err.println("UDPSender connect " +  socket.getLocalAddress() + ":" + socket.getLocalPort() + " to " + socket.getInetAddress() + ":" + socket.getPort());
@@ -193,7 +195,8 @@ public class UDPSender implements Runnable {
             // Create a DatagramPacket
             // Set inetAddr and port
             // Although we did a connect(), some platforms don't seem to do it properly.
-            DatagramPacket packet = new DatagramPacket(recvArray, recvArray.length, inetAddr, port);
+            //DatagramPacket packet = new DatagramPacket(recvArray, recvArray.length, inetAddr, port);
+            DatagramPacket packet = new DatagramPacket(recvArray, recvArray.length);
             
             // add the DatagramPacket to the queue
             packetQueue.put(packet);
