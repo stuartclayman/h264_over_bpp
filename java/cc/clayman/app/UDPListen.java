@@ -273,15 +273,53 @@ public class UDPListen {
                 // Some packets are missing
                 int missing = seqNo - lastSeen;
 
+                // is it the next NAL ?
+                if (nalNo != chunk.getNALNumber()) {
+                    // we crossed a nalNo boundary
+
+                    // The new NAL we've just seen
+                    int newNALNo = chunk.getNALNumber();
+                    // How many lost
+                    int lostNALs = newNALNo - nalNo;
+
+                    
+                    if (Verbose.level >= 1) {
+                        // was previous NAL a VCL
+                        // Now we know that some fragments were dropped in the network
+                        if (type == NALType.VCL) {
+                            // Look at TemporalLayerModelGOB16
+                            TemporalLayerModel.Tuple currentNALModel = model.getLayerInfo(vclCount);
+
+                            // There were missing fragments
+                            System.err.printf("QUALITY: MISSING_FRAGMENTS VCLNo: %d FrameNo: %s Frame: %s Temporal: %s  Qualitylayer: %d Time: %d\n", vclCount, vclCount + currentNALModel.adjustment, currentNALModel.frame, currentNALModel.temporal, qualityLayer, System.nanoTime());  
+                        
+                        }
+
+                        // accounted for 1
+                        lostNALs--;
+                    }
+
+                    // Now check if we lost fragments from more than 1 NAL
+
+                    for (int n=1; n<=lostNALs; n++) {
+                        System.err.printf("QUALITY: LOST_NAL: NALNumber: %d Time: %d\n", (nalNo + n), System.nanoTime());
+                    }
+                    
+
+                } else {
+                    // still in same NAL no
+                }
+
+
                 if (Verbose.level >= 1) {
                     for (int m=1; m<=missing; m++) {
-                        fragment++;
+                        //fragment++;
                         missingFragmentCount++;
 
                         System.err.printf("%-18s", "LISTEN: DROPPED ");           //
                         System.err.printf("seqNo: %-8d", lastSeen + m);    // N
-                        System.err.printf(" NALNumber: %-8d", nalNo + m);    // N
-                        System.err.printf("fragment: %-8d", fragment);    // N
+                        //System.err.printf(" NALNumber: %-8d", nalNo + m);    // N
+                        System.err.printf("packet: %-8d", m);    // N
                 
                         
                         System.err.println("");
