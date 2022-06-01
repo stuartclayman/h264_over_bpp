@@ -83,6 +83,7 @@ public class BPPSend {
 
                     String val = args[argc];
                     sleep = Integer.parseInt(val);
+                    adaptiveSleep = false;
                     argc++;
              
                 } else if (arg0.equals("-r")) {
@@ -92,6 +93,7 @@ public class BPPSend {
                     String val = args[argc];
                     packetsPerSecond = Integer.parseInt(val);
                     sleep = 1000 / packetsPerSecond;
+                    adaptiveSleep = false;
                     argc++;
              
                 } else if (arg0.equals("-c")) {            
