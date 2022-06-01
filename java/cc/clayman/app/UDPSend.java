@@ -157,7 +157,7 @@ public class UDPSend {
 
         // Setup nalProcessor printer
         if (Verbose.level >= 1) {
-            nalProcessor.onChunk(new ChunkInfoPrinter());
+            nalProcessor.onChunk(new SVCChunkInfoPrinter());
         }
 
         while (nalProcessor.hasNext()) {

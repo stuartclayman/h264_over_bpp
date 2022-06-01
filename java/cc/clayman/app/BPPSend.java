@@ -26,7 +26,7 @@ public class BPPSend {
 
     static UDPSender sender = null;
     static int sleep = 7;                 // default sleep (in milliseconds) between chunks
-    static boolean adaptiveSleep = false; // show we do adaptive sleep
+    static boolean adaptiveSleep = true;  // show we do adaptive sleep
     static int packetsPerSecond = 0;      // no of packets per second
     static int columns = 80;              // default no of cols on terminal
     static int packetSize = 1500;         // packet size
@@ -182,8 +182,14 @@ public class BPPSend {
 
 
     protected static void processFile(String filename) throws IOException {
-        int count = 0;
-        int total = 0;
+        int count = 0;  // packet count
+        int total = 0;  // total sent
+        int countThisSec = 0;  // packet count this second
+        int sentThisSec = 0;   // amount sent this second
+        int expected = videoKbps * 1024 / 8;   // expected amount to send per second
+        int seconds = 0;       // no of seconds
+        long secondStart = 0;   // when did the second start
+
         SVCChunkInfo chunk = null;
         
         // Setup UDP Sender
@@ -223,8 +229,14 @@ public class BPPSend {
 
         // Setup nalProcessor printer
         if (Verbose.level >= 1) {
-            nalProcessor.onChunk(new ChunkInfoPrinter());
+            nalProcessor.onChunk(new SVCChunkInfoPrinter());
         }
+
+        // set secondStart
+        secondStart = System.currentTimeMillis();
+
+        // use default sleep
+        int lastSleep = sleep;
 
         // Get Chunks from the nalProcessor
         while (nalProcessor.hasNext()) {
@@ -247,15 +259,63 @@ public class BPPSend {
             // fix sleep from student code - awaiting proper algorithm
             try {
                 if (adaptiveSleep) {
-                    int value = (chunk.offset() / (packetSize / sleep)) + 1;
+
+                    long now = System.currentTimeMillis();
+                    long timeOffset = now - secondStart;
+                    float secondPart = (float)timeOffset / 1000;
+
+                    if (timeOffset >= 1000) {
+                        // we crossed a second boundary
+                        seconds++;
+                        secondStart = now;
+                        countThisSec = 0;
+                        sentThisSec = 0;
+                        secondPart = 0;
+                        lastSleep = sleep;
+                    }
+
+                    // how much is sent
+                    int thisPacket = chunk.offset();
+                    countThisSec++;
+                    sentThisSec += thisPacket;
+
+                    // work out sleep if ideally send packetSize
+                    //int idealPacketsPerSecond  = expected / packetSize;
+                    //int idealSleep = 1000 / idealPacketsPerSecond;
+                    int idealSentThisSec = (int) (expected * secondPart);
+                    int behind = idealSentThisSec - sentThisSec;
+                    int value =  0; 
+
+                    if (behind > 0) {
+                        // behind
+                        if (behind > packetSize) {
+                            // a bit too much behind
+                            value = (lastSleep == 1 ? 1 : lastSleep-1);
+                        } else {
+                            value = lastSleep;
+                        }
+                    } else {
+                        // ahead
+                        if (behind < -packetSize) {
+                            // a bit too much ahead
+                            value = lastSleep + 1;
+                        } else {
+                            value = lastSleep;
+                        }
+                    }
+                            
+
+                    lastSleep = value;
+
+                    if (Verbose.level >= 2) {
+                        System.err.printf("SLEEP: second: %2.3f  packetsThisSec: %3d  sentThisSec: %7d  idealSentThisSec: %7d  behindBytes: %6d  sleep: %2d\n", seconds + secondPart, countThisSec, sentThisSec, idealSentThisSec, behind, value);
+                    }
+                                                            
                     Thread.sleep(value);
 
-                    if (Verbose.level >= 3) {
-                        System.err.print("sleep: " + value);
-                    }
                 } else {
                     if (Verbose.level >= 3) {
-                        System.err.print("sleep: " + sleep);
+                        System.err.print("SLEEP: " + sleep);
                     }
 
                     Thread.sleep(sleep);

@@ -27,6 +27,12 @@ public class BPPDepacketizer implements ChunkDepacketizer {
     int count = 0;
 
     int chunkCount;
+
+    int nalNumber = 0;
+    int lastNalNo = 0;
+    int nalBaseCount = 0;
+    int fragmentNumber = 0;
+    int fragmentBaseCount = 0;
     
     public BPPDepacketizer() {
         chunkCount = 1;
@@ -159,7 +165,34 @@ public class BPPDepacketizer implements ChunkDepacketizer {
             nalCount = (offI >> 17) & 0x0000001F;
             nalNo = (offI >> 5) & 0x00000FFF;
             fragment = (offI & 0x0000001F);
-        
+
+            // check if nalNo has wrapped
+            // 4095 = 12 bits of 1s
+            // only do on first chunk
+            if (c==0 && nalNo < (lastNalNo % 4096)) {
+                nalBaseCount += 4096;
+            }
+
+            // process read nalNo
+            nalNumber = nalBaseCount + nalNo;
+
+            // check if new nalNo
+            if (c == 0 && nalNumber > lastNalNo) {
+                lastNalNo = nalNumber;
+                // reset fragmentBaseCount
+                fragmentBaseCount = 0;
+            }
+
+            // process read fragment
+            fragmentNumber = fragmentBaseCount + fragment;
+
+            // check if fragment has wrapped
+            // 31 = 5 bits of 1s
+            // only do on first chunk
+            if (c== 0 && fragment == 0) {
+                fragmentBaseCount += 32;
+            }
+            
             if (type == 0 || type == 1)  {
                 nalType = (type == 0 ? NALType.VCL : NALType.NONVCL);
             } else {
@@ -168,7 +201,7 @@ public class BPPDepacketizer implements ChunkDepacketizer {
             
             
             if (Verbose.level >= 1) {
-                System.err.printf("  %-3dOFFi: nalNo: %d nalCount: %d fragment: %d \n", (c+1), nalNo, nalCount, fragment);
+                System.err.printf("  %-3dOFFi: nalNo: %d nalCount: %d fragment: %d \n", (c+1), nalNumber, nalCount, fragment);
                 System.err.printf("     CSi: contentSize: %d  SIGi:  %d\n", csI, sigI);
                 System.err.printf("     OFi: %s FFi: %s  NAL: %s\n", ofI, ffI, nalType);
             }
@@ -177,7 +210,7 @@ public class BPPDepacketizer implements ChunkDepacketizer {
             contentSizes[c] = csI;
 
             // fragmentation info
-            fragments[c] = fragment;
+            fragments[c] = fragmentNumber;
             lastFragment[c] = ffI;
             isDropped[c] = ofI;
             
@@ -194,7 +227,7 @@ public class BPPDepacketizer implements ChunkDepacketizer {
         
 
             chunk.setNALType(nalType);
-            chunk.setNALNumber(nalNo);
+            chunk.setNALNumber(nalNumber);
             chunk.setNALCount(nalCount);
 
                     

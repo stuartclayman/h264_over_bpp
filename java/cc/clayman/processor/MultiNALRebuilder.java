@@ -289,6 +289,11 @@ public class MultiNALRebuilder implements NALRebuilder {
             // If it is not, then something has gone missing
             if (nalNumber != expectedNALNo) {
                 // something went wrong in transmission
+
+                if (Verbose.level >= 2) {
+                    System.err.println("ERROR NONVCL: nalNumber " + nalNumber + "  !=  expectedNALNo: " + expectedNALNo);
+                }
+
                 RebuildState state =  new RebuildState(RebuildState.State.MISSSING, nalType, nalNumber);
 
                 return state;
@@ -330,6 +335,11 @@ public class MultiNALRebuilder implements NALRebuilder {
             // If it is not, then something has gone missing
             if (nalNumber != expectedNALNo) {
                 // something went wrong in transmission
+
+                if (Verbose.level >= 2) {
+                    System.err.println("ERROR VCL: nalNumber " + nalNumber + "  !=  expectedNALNo: " + expectedNALNo);
+                }
+
                 RebuildState state =  new RebuildState(RebuildState.State.MISSSING, nalType, nalNumber);
 
                 return state;

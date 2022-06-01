@@ -122,7 +122,7 @@ public class H264Listen {
 
         // Setup rebuilder printer
         if (Verbose.level >= 1) {
-            rebuilder.onChunk(new ChunkInfoPrinter());
+            rebuilder.onChunk(new SVCChunkInfoPrinter());
         }
 
 
