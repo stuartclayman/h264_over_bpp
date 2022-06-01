@@ -72,10 +72,10 @@ public class DynamicSplit implements ChunkSizeCalculator {
         
         }        
 
-        for (int c=0; c<count; c++) {
-            System.err.print(" val " + result[c]);
-        }
-        System.err.println();
+        //for (int c=0; c<count; c++) {
+        //    System.err.print(" val " + result[c]);
+        //}
+        //System.err.println();
 
 
         return result;
