@@ -165,9 +165,11 @@ public class BPPPacketizer implements ChunkPacketizer {
                 boolean isLastFragment = content[c].isLastFragment();
 
                 // Add per-chunk Metadata Block - 48 bits / 6 bytes 
-                //  -  22 bits (OFFi [5 bits (Chunk Offset) + 12 bits (Source Frame No) + 5 bits (Frag No)])
+                //  -  22 bits (OFFi [5 bits (NAL Count) + 12 bits (NAL No) + 5 bits (Frag No)])
                 //   + 14 bits (CSi) + 4 bits (SIGi) + 1 bit (OFi) + 1 bit (FFi)
                 //   + 6 bits (PAD)
+                // NAL No is limited to 12 bits - max 4095 - so can wrap
+                // Frag No is limited to 5 bits - max 31 - so can wrap
                 
                 int offI = 0;
                 int csI = 0;
