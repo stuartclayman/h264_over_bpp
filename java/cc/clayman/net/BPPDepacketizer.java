@@ -32,6 +32,7 @@ public class BPPDepacketizer implements ChunkDepacketizer {
     int lastNalNo = 0;
     int nalBaseCount = 0;
     int fragmentNumber = 0;
+    int lastFragmentNumber = 0;
     int fragmentBaseCount = 0;
     
     public BPPDepacketizer() {
@@ -183,18 +184,20 @@ public class BPPDepacketizer implements ChunkDepacketizer {
                 lastNalNo = nalNumber;
                 // reset fragmentBaseCount
                 fragmentBaseCount = 0;
+                lastFragmentNumber = 0;
             }
-
-            // process read fragment
-            fragmentNumber = fragmentBaseCount + fragment;
 
             // check if fragment has wrapped
             // 31 = 5 bits of 1s
             // only do on first chunk
-            if (c== 0 && fragment == 0) {
+            if (c== 0 && fragment < (lastFragmentNumber % 32)) {
                 fragmentBaseCount += 32;
             }
             
+            // process read fragment
+            fragmentNumber = fragmentBaseCount + fragment;
+            lastFragmentNumber = fragmentNumber;
+
             if (type == 0 || type == 1)  {
                 nalType = (type == 0 ? NALType.VCL : NALType.NONVCL);
             } else {

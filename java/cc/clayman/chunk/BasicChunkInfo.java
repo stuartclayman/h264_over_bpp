@@ -16,7 +16,6 @@ import cc.clayman.h264.NALType;
 public class BasicChunkInfo {
     int startNAL;               // The NAL number in the stream.  Starts at 1.
     int nalCount;               // How many NALs in this Chunk
-    int sourceFrameNo;          // The source frame number
     int fragmentationNo;        // If fragmented, what fragment is this. 0 is none.
     boolean lastFragment;
     NALType type;               // Is it VCL or non-VCL
