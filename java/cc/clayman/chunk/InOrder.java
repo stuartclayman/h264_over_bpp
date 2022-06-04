@@ -26,8 +26,9 @@ public class InOrder implements ChunkSizeCalculator {
                 if (sizes[c] == 0) {
                     // already used up
                     result[c] = 0;
-                } else if (sizes[c] > 0) {
+                } else if (sizes[c] > 0 && left > 4) {
                     // more to collect
+                    // need to have at least 4 bytes so that the NAL marker fits in
                     result[c] = payloadSize;
                     isSet = true;
                 }

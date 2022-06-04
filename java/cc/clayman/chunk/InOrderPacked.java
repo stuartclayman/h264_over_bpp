@@ -32,8 +32,9 @@ public class InOrderPacked implements ChunkSizeCalculator {
                     // more to collect
                     result[c] = sizes[c];
                     left -= sizes[c];
-                } else if (sizes[c] > 0) {
+                } else if (sizes[c] > 0 && left > 4) {
                     // more to collect
+                    // need to have at least 4 bytes so that the NAL marker fits in
                     result[c] = left;
                     left = 0;
                 }
