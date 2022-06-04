@@ -171,7 +171,7 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
      * Returns true if the iteration has more elements.
      */
     public boolean hasNext() {
-        if (Verbose.level >= 2) {
+        if (Verbose.level >= 3) {
             System.err.println("  hasNext()");
         }
         
@@ -189,7 +189,7 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
      * Returns the next element in the iteration.
      */
     public SVCChunkInfo next() {
-        if (Verbose.level >= 2) {
+        if (Verbose.level >= 3) {
             System.err.println("  next()");
         }
         
@@ -405,7 +405,7 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
                 currentNAL = inStream.getNAL();
                 nalNumber++;
 
-                if (Verbose.level >= 2) {
+                if (Verbose.level >= 3) {
                     System.err.println("  Fetch " + nalNumber + " NAL " + currentNAL);
                 }
                 
@@ -426,7 +426,7 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
                         currentNAL = inStream.getNAL();
                         nalNumber++;
 
-                        if (Verbose.level >= 2) {
+                        if (Verbose.level >= 3) {
                             System.err.println("  Fetch " + nalNumber + " NAL " + currentNAL);
                         }
                 
@@ -471,7 +471,7 @@ public class MultiNALProcessor implements NALProcessor, Iterator {
         // eject currentNAL
         currentNAL = null;
 
-        if (Verbose.level >= 2) {
+        if (Verbose.level >= 3) {
             System.err.println("    ejectNAL");
         }
     }

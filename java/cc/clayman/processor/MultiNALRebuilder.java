@@ -83,7 +83,7 @@ public class MultiNALRebuilder implements NALRebuilder {
      * Returns true if the iteration has more elements.
      */
     public boolean hasNext() {
-        if (Verbose.level >= 2) {
+        if (Verbose.level >= 3) {
             System.err.println("  hasNext()");
         }
 
@@ -101,7 +101,7 @@ public class MultiNALRebuilder implements NALRebuilder {
      * what the rebuilder has discovered from the stream of Chunks.
      */
     public NALResult next() {
-        if (Verbose.level >= 2) {
+        if (Verbose.level >= 3) {
             System.err.println("  next()");
         }
 
@@ -159,7 +159,7 @@ public class MultiNALRebuilder implements NALRebuilder {
                             }
 
 
-                            if (Verbose.level >= 2) {
+                            if (Verbose.level >= 3) {
                                 System.err.println("next: nalList = " + nalList.size());
                             }
 
@@ -206,7 +206,7 @@ public class MultiNALRebuilder implements NALRebuilder {
                                 expectedNALNo++;
                             }
 
-                            if (Verbose.level >= 2) {
+                            if (Verbose.level >= 3) {
                                 System.err.println("next: nalList = " + nalList.size());
                             }
                                                 
@@ -218,7 +218,7 @@ public class MultiNALRebuilder implements NALRebuilder {
                         } else if (processedChunk.state == RebuildState.State.MISSSING) {
                             // What shall we do on a MISSSING one
                             if (Verbose.level >= 1) {
-                                System.err.println("MISSSING " + processedChunk.nalNumber);
+                                System.err.println("MISSING " + processedChunk.nalNumber);
                             }
 
                             expectedNALNo++;
@@ -280,7 +280,7 @@ public class MultiNALRebuilder implements NALRebuilder {
         if (nalType == NALType.NONVCL) {
             // got some NONVCL data
 
-            if (Verbose.level >= 1) {
+            if (Verbose.level >= 2) {
                 System.err.println("process NONVCL");
             }
             
@@ -326,7 +326,7 @@ public class MultiNALRebuilder implements NALRebuilder {
         } else {
             // VCL
 
-            if (Verbose.level >= 1) {
+            if (Verbose.level >= 2) {
                 System.err.println("process VCL");
             }
             
@@ -420,7 +420,7 @@ public class MultiNALRebuilder implements NALRebuilder {
                         // then the NAL cannot be rebuilt
                         // so it is marked as WASHED
                         if (chunk.isDropped()) {
-                            if (Verbose.level >= 1) {
+                            if (Verbose.level >= 2) {
                                 System.err.println("convertLayer: layer " + layer + " is dropped");
                             }
                             
@@ -435,7 +435,7 @@ public class MultiNALRebuilder implements NALRebuilder {
                         }
                     } else {
                         // something was lost in transmission
-                        if (Verbose.level >= 1) {
+                        if (Verbose.level >= 2) {
                             System.err.println("convertLayer: layer " + layer + " LOST");
                         }
 

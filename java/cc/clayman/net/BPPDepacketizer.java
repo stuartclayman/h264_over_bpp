@@ -205,7 +205,7 @@ public class BPPDepacketizer implements ChunkDepacketizer {
             }
             
             
-            if (Verbose.level >= 1) {
+            if (Verbose.level >= 2) {
                 System.err.printf("  %-3dOFFi: nalNo: %d nalCount: %d fragment: %d \n", (c+1), nalNumber, nalCount, fragment);
                 System.err.printf("     CSi: contentSize: %d  SIGi:  %d\n", csI, sigI);
                 System.err.printf("     OFi: %s FFi: %s  NAL: %s\n", ofI, ffI, nalType);

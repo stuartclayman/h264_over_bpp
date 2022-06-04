@@ -218,7 +218,7 @@ public class BPPPacketizer implements ChunkPacketizer {
                 bufPos += BPP.METADATA_BLOCK_SIZE;
 
                 
-                if (Verbose.level >= 1) {
+                if (Verbose.level >= 2) {
                     System.err.printf("  %-3dOFFi: nalNo: %d nalCount: %d fragment: %d \n", (c+1), nalNo, nalCount, fragment);
                     System.err.printf("     CSi: contentSize: %d  SIGi:  %d\n", csI, sigI);
                     System.err.printf("     OFi: %s FFi: %s  NAL: %s\n", ofI, isLastFragment, type);
@@ -241,7 +241,7 @@ public class BPPPacketizer implements ChunkPacketizer {
             }
 
 
-            if (Verbose.level >= 2) {
+            if (Verbose.level >= 3) {
                 System.err.println("BPP: bufPos = " + bufPos);
             }
                 
