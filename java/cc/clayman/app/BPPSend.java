@@ -25,7 +25,7 @@ public class BPPSend {
     static int udpPort = 6799;
 
     static UDPSender sender = null;
-    static int sleep = 7;                 // default sleep (in milliseconds) between chunks
+    static float sleep = 7.0f;                 // default sleep (in milliseconds) between chunks
     static boolean adaptiveSleep = true;  // show we do adaptive sleep
     static int packetsPerSecond = 0;      // no of packets per second
     static int columns = 80;              // default no of cols on terminal
@@ -54,9 +54,9 @@ public class BPPSend {
                     filename = args[argc];
 
                 } else if (arg0.equals("-h")) {
-                        // Host
-                        argc++;
-                        host = args[argc];
+                    // Host
+                    argc++;
+                    host = args[argc];
 
                 } else if (arg0.equals("-p")) {
                     // Port
@@ -82,9 +82,8 @@ public class BPPSend {
                     argc++;
 
                     String val = args[argc];
-                    sleep = Integer.parseInt(val);
+                    sleep = Float.parseFloat(val);
                     adaptiveSleep = false;
-                    argc++;
              
                 } else if (arg0.equals("-r")) {
                     // Packet sending rate - packets per second
@@ -92,9 +91,8 @@ public class BPPSend {
 
                     String val = args[argc];
                     packetsPerSecond = Integer.parseInt(val);
-                    sleep = 1000 / packetsPerSecond;
+                    sleep = 1000f / packetsPerSecond;
                     adaptiveSleep = false;
-                    argc++;
              
                 } else if (arg0.equals("-c")) {            
                     // columns
@@ -167,6 +165,7 @@ public class BPPSend {
             System.err.println("NALs per frame: " + nalsPerFrame);
             System.err.println("Packet size: " + packetSize);
             System.err.println("Columns: " + columns);
+            System.err.println("Sleep: " + sleep);
             System.err.println("Adaptive Sleep: " + (adaptiveSleep ? "ON" : "OFF"));
         }
         
@@ -238,7 +237,7 @@ public class BPPSend {
         secondStart = System.currentTimeMillis();
 
         // use default sleep
-        int lastSleep = sleep;
+        float lastSleep = sleep;
 
         // Get Chunks from the nalProcessor
         while (nalProcessor.hasNext()) {
@@ -286,7 +285,7 @@ public class BPPSend {
                     //int idealSleep = 1000 / idealPacketsPerSecond;
                     int idealSentThisSec = (int) (expected * secondPart);
                     int behind = idealSentThisSec - sentThisSec;
-                    int value =  0; 
+                    float value =  0; 
 
                     if (behind > 0) {
                         // behind
@@ -313,14 +312,17 @@ public class BPPSend {
                         System.err.printf("SLEEP: second: %2.3f  packetsThisSec: %3d  sentThisSec: %7d  idealSentThisSec: %7d  behindBytes: %6d  sleep: %2d\n", seconds + secondPart, countThisSec, sentThisSec, idealSentThisSec, behind, value);
                     }
                                                             
-                    Thread.sleep(value);
+                    Thread.sleep((int)value);
 
                 } else {
                     if (Verbose.level >= 3) {
                         System.err.print("SLEEP: " + sleep);
                     }
 
-                    Thread.sleep(sleep);
+                    // Get second part and nanosecond part
+                    int secondPart = (int)sleep;
+                    int nanosecondPart = (int)((sleep - secondPart) * 1000000);
+                    Thread.sleep(secondPart, nanosecondPart);
                 }
                 
             } catch (InterruptedException ie) {
