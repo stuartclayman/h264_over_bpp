@@ -31,7 +31,8 @@ public class BPPSend {
     static int columns = 80;              // default no of cols on terminal
     static int packetSize = 1500;         // packet size
     static int nalsPerFrame = 3;          // no of NALs per frame
-    static int videoKbps = 1094;          // The bandwidth of the video file
+    static int videoKbps = 1094;          // the bandwidth of the video file
+    static int threshold = 5;             // default threshold
 
     static ChunkPacketizer packetizer = null;
     static ChunkSizeCalculator calculator = null;
@@ -83,6 +84,7 @@ public class BPPSend {
 
                     String val = args[argc];
                     sleep = Float.parseFloat(val);
+                    packetsPerSecond = (int)(1000f / sleep);
                     adaptiveSleep = false;
              
                 } else if (arg0.equals("-r")) {
@@ -115,6 +117,13 @@ public class BPPSend {
 
                     String val = args[argc];
                     videoKbps = Integer.parseInt(val);
+
+                } else if (arg0.equals("-T")) {            
+                    // threshold for significance values
+                    argc++;
+
+                    String val = args[argc];
+                    threshold = Integer.parseInt(val);
 
                 } else if (arg0.startsWith("-P")) {
 
@@ -164,9 +173,11 @@ public class BPPSend {
             System.err.println("Send on port: " + udpPort);
             System.err.println("NALs per frame: " + nalsPerFrame);
             System.err.println("Packet size: " + packetSize);
-            System.err.println("Columns: " + columns);
             System.err.println("Sleep: " + sleep);
             System.err.println("Adaptive Sleep: " + (adaptiveSleep ? "ON" : "OFF"));
+            System.err.println("Threshold: " + threshold);
+            System.err.println("Video kbps: " + videoKbps);
+            System.err.println("Columns: " + columns);
         }
         
         try {
@@ -177,7 +188,7 @@ public class BPPSend {
     }
 
     static void usage() {
-        System.err.println("BPPSend [-f [-|filename]] [-h host]  [-p port] [-s sleep|-r rate|-a] [-z packetSize] [-N nals] [-B bandwidth] [-Pe|-Pd|-Pi|-Pf]");
+        System.err.println("BPPSend [-f [-|filename]] [-h host]  [-p port] [-s sleep|-r rate|-a] [-z packetSize] [-N nals] [-B bandwidth] [-T threshold] [-Pe|-Pd|-Pi|-Pf]");
         System.exit(1);
     }
 
@@ -254,8 +265,14 @@ public class BPPSend {
             //System.err.printf("%-6d", count);
             //infoChunk(chunk, count, total);
 
+            // Condition: packetsPerSecond
+            int condition = packetsPerSecond;
+
+            // Threshold: 0 - 255
+            // This is used by the network node to drop chunks
+            
             // now send it
-            sender.sendPayload(packetizer.convert(count, chunk));
+            sender.sendPayload(packetizer.convert(count, condition, threshold, chunk));
 
             // fix sleep from student code - awaiting proper algorithm
             try {
@@ -309,7 +326,7 @@ public class BPPSend {
                     lastSleep = value;
 
                     if (Verbose.level >= 2) {
-                        System.err.printf("SLEEP: second: %2.3f  packetsThisSec: %3d  sentThisSec: %7d  idealSentThisSec: %7d  behindBytes: %6d  sleep: %2d\n", seconds + secondPart, countThisSec, sentThisSec, idealSentThisSec, behind, value);
+                        System.err.printf("SLEEP: second: %2.3f  packetsThisSec: %3d  sentThisSec: %7d  idealSentThisSec: %7d  behindBytes: %6d  sleep: %2f\n", seconds + secondPart, countThisSec, sentThisSec, idealSentThisSec, behind, value);
                     }
                                                             
                     Thread.sleep((int)value);

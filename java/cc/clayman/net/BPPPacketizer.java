@@ -75,7 +75,7 @@ public class BPPPacketizer implements ChunkPacketizer {
      * Convert a SVCChunkInfo into byte[]
      * @throws UnsupportedOperationException if the Chunk is too big to fit in a packet
      */
-    public byte[] convert(int sequence, ChunkInfo svcChunk) throws UnsupportedOperationException {
+    public byte[] convert(int sequence, int condition, int threshold, ChunkInfo svcChunk) throws UnsupportedOperationException {
         SVCChunkInfo chunk = (SVCChunkInfo)svcChunk;
         
         count++;
@@ -128,14 +128,9 @@ public class BPPPacketizer implements ChunkPacketizer {
 
             // Command: 00001 = PacketWash, 00011= drop
             int command = 0x00001;
-            // Condition: in kbps. So 1094 Kbps -> 109.4 * 10 K ~= 109
-            // So we send Kbps / 10
-            int condition = videoKbps / 10;
+            // Condition: is passed in
 
-            // Threshold: 0 - 255
-            // This is used by the network node to drop chunks
-            // Might need to be passed in at run-time
-            int threshold = 5;
+            // Threshold: 0 - 255 is passed in
             
             commandBlock = (command << 19) | ((byte)(condition & 0x000000FF) << 11) | ((byte)(threshold & 0x000000FF) << 3);
             
@@ -147,11 +142,17 @@ public class BPPPacketizer implements ChunkPacketizer {
                 System.err.println("Chunk data: nalNo = " + nalNo + " nalCount = " + nalCount);
             }
 
+            // Add Sequence no
+            packetBytes[7] = (byte)(((sequence & 0xFF000000) >> 24) & 0xFF);
+            packetBytes[8] = (byte)(((sequence & 0x00FF0000) >> 16) & 0xFF);
+            packetBytes[9] = (byte)(((sequence & 0x0000FF00) >> 8) & 0xFF);
+            packetBytes[10] = (byte)(((sequence & 0x000000FF) >> 0) & 0xFF);
+            
             // increase bufPos
             bufPos += BPP.COMMAND_BLOCK_SIZE;
 
             if (Verbose.level >= 2) {
-                System.err.printf(" %-6d ver: 0x%04X chunkCount: %d command: 0x%05X condition: %d threshold: %d\n", count, version, chunkCount, command, condition, threshold);
+                System.err.printf(" %-6d ver: 0x%04X seq: %d chunkCount: %d command: 0x%05X condition: %d threshold: %d\n", count, version, sequence, chunkCount, command, condition, threshold);
             }
         
 

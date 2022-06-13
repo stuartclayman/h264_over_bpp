@@ -12,8 +12,9 @@ package cc.clayman.bpp;
  * BPP Block Header:  4 bytes (32 bits)
  *  - 32 bits (mix of fields)
  *
- * Command Block:     3 bytes (24 bits)
+ * Command Block:     7 bytes (56 bits)
  *  - 5 bits (Command) + 8 bits (Condition) + 8 bits (Threshold) + 3 bits (PAD)
+ *  - 32 bits (Sequence No)
  *
  * Metadata Block:    6 bytes (48 bits) times no of chunks
  *  - 22 bits (OFFi [5 bits (Chunk Offset) + 12 bits (Source Frame No) + 5 bits (Frag No)])
@@ -24,7 +25,9 @@ package cc.clayman.bpp;
     +------------------+--------------------+--------------------+-----------------+
     | BPP Block Header (32 bits)                                                   *
     +------------------+--------------------+--------------------+-----------------+
-    | Command (5) |  Condition (8) | Threshold (8)   |  PAD (3)  *   OFFi (8)      |
+    | Command (5) |  Condition (8) | Threshold (8)   |  PAD (3)  * SeqNo (8)       *
+    +------------------+--------------------+--------------------+-----------------+
+    | SeqNo (24)                                                 *   OFFi (8)      |
     +------------------+--------------------+--------------------+-----------------+
     | OFFi (14)                       | CSi (14)                        | SIGi (4) |
     +------------------+--------------------+--------------------+-----------------+
@@ -43,7 +46,7 @@ public class BPP {
 
     public static final int BLOCK_HEADER_SIZE = 4;
 
-    public static final int COMMAND_BLOCK_SIZE = 3;
+    public static final int COMMAND_BLOCK_SIZE = 7;
 
     public static final int METADATA_BLOCK_SIZE = 6;
 }

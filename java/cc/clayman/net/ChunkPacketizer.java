@@ -21,8 +21,8 @@ public interface ChunkPacketizer {
     
     /**
      * Convert a ChunkInfo into byte[]
-     * Takes a sequence number and a ChunkInfo
+     * Takes a sequence number, a condition value, a threshold value, and a ChunkInfo
      * @throws UnsupportedOperationException if the Chunk is too big to fit in a packet
      */
-    public byte[] convert(int sequence, ChunkInfo chunk) throws UnsupportedOperationException;
+    public byte[] convert(int sequence, int condition, int threshold, ChunkInfo chunk) throws UnsupportedOperationException;
 }

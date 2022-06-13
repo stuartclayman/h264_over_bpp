@@ -84,12 +84,20 @@ public class BPPDepacketizer implements ChunkDepacketizer {
         byte b5 = packetBytes[5];
         byte b6 = packetBytes[6];
 
+        // Get the Sequence No bytes
+        byte b7 = packetBytes[7];
+        byte b8 = packetBytes[8];
+        byte b9 = packetBytes[9];
+        byte b10 = packetBytes[10];
+        
+
         bufPos += BPP.COMMAND_BLOCK_SIZE;
         
 
         int command = 0;
         int condition = 0;
         int threshold = 0;
+        int sequence = 0;
 
         // command is top 5 bits of b4
         command = (b4 & 0xFC) >> 3;
@@ -100,10 +108,12 @@ public class BPPDepacketizer implements ChunkDepacketizer {
         // threshold is bottom 3 bits of b5 and top 5 bits of b6
         threshold = ((b5 & 0x07) << 5) | (b6 & 0xFC) >> 3;
         
-
+        // sequence no
+        sequence = ((b7 & 0xFF) << 24) | ((b8  & 0xFF) << 16) | ((b9  & 0xFF) << 8) | (b10  & 0xFF) ;
+        
         
         if (Verbose.level >= 2) {
-            System.err.printf(" %-6d ver: 0x%04X chunkCount: %d command: 0x%05X condition: %d threshold: %d\n", count, version, chunkCount, command, condition, threshold);
+            System.err.printf(" %-6d ver: 0x%04X seq: %d chunkCount: %d command: 0x%05X condition: %d threshold: %d\n", count, version, sequence, chunkCount, command, condition, threshold);
         }
         
 
