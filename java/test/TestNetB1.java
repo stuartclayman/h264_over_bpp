@@ -136,7 +136,8 @@ public class TestNetB1 {
             System.err.printf("%-6d", count);
 
             // now send it
-            sender.sendPayload(packetizer.convert(count, chunk));
+            // condition and threshold set to 0
+            sender.sendPayload(packetizer.convert(count, 0, 0, chunk));
 
             // fix sleep from student code - awaiting proper algorithm
             try { 
