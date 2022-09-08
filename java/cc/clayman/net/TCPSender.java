@@ -1,26 +1,31 @@
-// UDPSender.java
+// TCPSender.java
 // Author: Stuart Clayman
 // Email: s.clayman@ucl.ac.uk
-// Date: August 2021
+// Date: Sept 2022
 
 package cc.clayman.net;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.InetAddress;
-import java.net.DatagramSocket;
-import java.net.DatagramPacket;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.net.UnknownHostException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import cc.clayman.util.Verbose;
 
-
 /**
- * Take a payload as byte[] and send them over the network using UDP as a transport.
+ * Take a payload as byte[] and send them over the network using TCP as a transport.
+ *
+ * The TCPSender listens on a ServerSocket for one incoming connection,
+ * and then sends the bytes back to the caller.  Then it stops.
  */
-public class UDPSender implements Runnable {
+public class TCPSender implements Runnable {
 
     // Host
     String host;
@@ -32,7 +37,10 @@ public class UDPSender implements Runnable {
     InetAddress inetAddr;
 
     // socket
-    DatagramSocket socket;
+    ServerSocketChannel channel = null;
+    ServerSocket serverSocket = null;
+    SocketChannel client  = null;
+    Socket socket = null;
 
     // isConnected
     boolean isConnected;
@@ -45,7 +53,7 @@ public class UDPSender implements Runnable {
     boolean eof = false;
 
     // A queue of DatagramPackets
-    LinkedBlockingQueue<DatagramPacket> packetQueue = new LinkedBlockingQueue<DatagramPacket>();
+    LinkedBlockingQueue<ByteBuffer> packetQueue = new LinkedBlockingQueue<ByteBuffer>();
 
     // The Thread
     Thread myThread;
@@ -55,9 +63,9 @@ public class UDPSender implements Runnable {
 
 
     /**
-     * A UDPSender needs a host and port for the end point.
+     * A TCPSender needs a host and port for the end point.
      */
-    public UDPSender(String host, int port) throws UnknownHostException, IOException {
+    public TCPSender(String host, int port) throws UnknownHostException, IOException {
         this.host = host;
         this.port = port;
         isConnected = false;
@@ -71,17 +79,31 @@ public class UDPSender implements Runnable {
         if (isConnected) {
             throw new IOException("Cannot connect again to: " + socket);
         } else {
-            socket = new DatagramSocket();
+            // Open a ServerSocketChannel
+            channel = ServerSocketChannel.open();
+            //channel.configureBlocking(true);
+
+            // and get it's socket
+            serverSocket = channel.socket();
 
             if (host.equals("localhost")) {
-                socket.connect(new InetSocketAddress(InetAddress.getLocalHost().getHostAddress(), port));
+                serverSocket.bind(new InetSocketAddress(port));
                 inetAddr = InetAddress.getLocalHost();
             } else {
-                socket.connect(new InetSocketAddress(InetAddress.getByName(host), port));
+                serverSocket.bind(new InetSocketAddress(host, port));
                 inetAddr = InetAddress.getByName(host);
             }
 
-            System.err.println("UDPSender connect " +  socket.getLocalAddress() + ":" + socket.getLocalPort() + " to " + socket.getInetAddress() + ":" + socket.getPort());
+            // Now wait for an incoming connection
+            client = channel.accept();
+            // and get the socket for that
+            socket = client.socket();
+
+            //System.err.println("TCPSender channel = " + channel + " serverSocket = " + serverSocket + " client = " + client + " socket = " + socket);
+
+            //System.err.println("TCPSender connect " +  socket.getLocalAddress() + ":" + socket.getLocalPort() + " to " + socket.getInetAddress() + ":" + socket.getPort());
+
+            
             isConnected = true;
             return true;
         }
@@ -94,6 +116,7 @@ public class UDPSender implements Runnable {
         try {
             eof = true;
             socket.close();
+            serverSocket.close();
         } catch (Exception ioe) {
             throw new Error("Socket: " + socket + " can't close");
         }
@@ -105,6 +128,7 @@ public class UDPSender implements Runnable {
     public boolean start() {
         try {
             // connect to the network
+            // and listen for a new inbound connection
             connect();
         
             // Run in Thread
@@ -113,6 +137,7 @@ public class UDPSender implements Runnable {
 
             return true;
         } catch (Exception e) {
+            e.printStackTrace();
             return false;
         }
     }
@@ -160,13 +185,13 @@ public class UDPSender implements Runnable {
     /**
      * Get the Socket.
      */
-    public DatagramSocket getSocket() {
+    public Socket getSocket() {
         return socket;
     }
 
     /**
      * The main run loop.
-     * It takes a DatagramPacket off the packet queue and sends it to the socket.
+     * It takes a ByteBuffer off the packet queue and sends it to the socket.
      */
     public void run() {
 	// if we get here the thread must be running
@@ -174,10 +199,10 @@ public class UDPSender implements Runnable {
         
         while (running) {
             try {
-                // get the next packet off the queue
-                DatagramPacket packet = packetQueue.take();
+                // get the next buffer off the queue
+                ByteBuffer packet = packetQueue.take();
             
-                transmitDatagram(packet);
+                transmitBuffer(packet);
                 
             } catch (InterruptedException ie) {
                 if (Verbose.level >= 2) {
@@ -191,10 +216,11 @@ public class UDPSender implements Runnable {
         }
     }
     
+    
     /**
      * Send a Packet with the specified packet
      */
-    protected boolean transmitDatagram(DatagramPacket packet) throws IOException {
+    protected boolean transmitBuffer(ByteBuffer packet) throws IOException {
 
         
 
@@ -203,7 +229,7 @@ public class UDPSender implements Runnable {
             try {
 
                 // send it
-                socket.send(packet);
+                client.write(packet);
                 outCounter++;
 
                 //System.err.print("+");
@@ -222,7 +248,7 @@ public class UDPSender implements Runnable {
             return false;
         }
     }
-
+    
     /**
      * 
      * @return 0 if something goes wrong
@@ -231,12 +257,37 @@ public class UDPSender implements Runnable {
     public int sendPayload(byte[] recvArray) {
 
         try {
-            // Create a DatagramPacket
-            // Set inetAddr and port
-            // Although we did a connect(), some platforms don't seem to do it properly.
-            DatagramPacket packet = new DatagramPacket(recvArray, recvArray.length);
+            // Create a ByteBuffer
             
-            // add the DatagramPacket to the queue
+            // Allocate enough for the content + 8 bytes for the header
+            ByteBuffer packet = ByteBuffer.allocate(recvArray.length + 8);
+
+            // Patch in 'CHNK' + the length of the content
+            packet.put(0, (byte)'C');
+            packet.put(1, (byte)'H');
+            packet.put(2, (byte)'N');
+            packet.put(3, (byte)'K');
+
+            // 32 bits for size
+            packet.position(4);
+            packet.putInt(recvArray.length);
+
+            // This works too
+            //packet.put(4, (byte)(((recvArray.length & 0xFF000000) >> 24) & 0xFF));
+            //packet.put(5, (byte)(((recvArray.length & 0x00FF0000) >> 16) & 0xFF));
+            //packet.put(6, (byte)(((recvArray.length & 0x0000FF00) >>  8) & 0xFF));
+            //packet.put(7, (byte)(((recvArray.length & 0x000000FF) >>  0) & 0xFF));
+
+                        
+            // copy in the payload
+            packet.position(8);
+            packet.put(recvArray, 0, recvArray.length);
+
+            // prepare the ByteBuffer
+            packet.rewind();
+            
+            
+            // add the ByteBuffer to the queue
             packetQueue.put(packet);
 
             // increase seqNo for next message
@@ -244,11 +295,10 @@ public class UDPSender implements Runnable {
 
             return 1;
         } catch (InterruptedException ie) {
-            System.err.println("Can't add DatagramPacket " + (seqNo+1) + " to queue");
+            System.err.println("Can't add ByteBuffer " + (seqNo+1) + " to queue");
             return 0;
         }
     }
-    
 
     /**
      * TO String

@@ -46,6 +46,7 @@ public class H264Listen {
 
     public static void main(String[] args) {
         if (args.length == 0) {
+            usage();
         } else if (args.length >= 1) {
             // have flags too
 

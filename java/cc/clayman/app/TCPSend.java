@@ -12,9 +12,9 @@ import cc.clayman.net.*;
 import cc.clayman.terminal.ChunkDisplay;
 import cc.clayman.util.Verbose;
 
-// A UDP sender
+// A TCP sender
 // With a Raw packetizer
-public class UDPSend {
+public class TCPSend {
 
     // Default is STDIN
     static String filename = "-";
@@ -24,7 +24,7 @@ public class UDPSend {
     // send port
     static int udpPort = 6799;
 
-    static UDPSender sender = null;
+    static TCPSender sender = null;
     static int sleep = 7;       // default sleep (in milliseconds) between chunks
     static ChunkPacketizer packetizer = null;
     static int columns = 80;    // default no of cols on terminal
@@ -100,7 +100,7 @@ public class UDPSend {
             
             
             if (Verbose.level >= 2) {
-                System.err.println("Send on port: " + udpPort);
+                System.err.println("Listen on port: " + udpPort);
                 System.err.println("Packet size: " + packetSize);
                 System.err.println("Columns: " + columns);
             }
@@ -116,16 +116,15 @@ public class UDPSend {
     }
 
     static void usage() {
-        System.err.println("UDPSend  [-f [-|filename]] [-s sleep] [-z packetSize] [-h host] [-p port]");
+        System.err.println("TCPSend  [-f [-|filename]] [-s sleep] [-z packetSize] [-h listen_host] [-p listen_port]");
         System.exit(1);
     }
 
 
     protected static void processFile(String filename) throws IOException {
-        // Setup UDP Sender
-        sender = new UDPSender(host, udpPort);
-        sender.start();
-        
+        // Setup TCP Sender
+        sender = new TCPSender(host, udpPort);
+        boolean started = sender.start();
 
         int count = 0;
         int total = 0;

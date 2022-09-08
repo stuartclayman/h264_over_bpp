@@ -7,7 +7,11 @@ import java.io.FileOutputStream;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.net.InetSocketAddress;
+import java.net.InetAddress;
 import java.net.DatagramPacket;
+import java.nio.ByteBuffer;
+
 
 import cc.clayman.h264.*;
 import cc.clayman.chunk.*;
@@ -16,11 +20,11 @@ import cc.clayman.net.*;
 import cc.clayman.terminal.ChunkDisplay;
 import cc.clayman.util.Verbose;
 
-// A UDP receiver 
+// A TCP receiver 
 
-public class UDPListen {
+public class TCPRequest {
 
-    static UDPReceiver receiver = null;
+    static TCPReceiver receiver = null;
 
     static int count = 0;
     static int total = 0;
@@ -30,8 +34,10 @@ public class UDPListen {
     static long startTime = 0;
     static long lastTime = 0;
 
-    // listen port
-    static int udpPort = 6799;
+    // server host
+    static String host = "localhost";
+    // server port
+    static int tcpPort = 6799;
 
     // output filename
     static String filename = null;
@@ -57,12 +63,17 @@ public class UDPListen {
                     argc++;
                     filename = args[argc];
 
+                } else if (arg0.equals("-h")) {
+                        // Host
+                        argc++;
+                        host = args[argc];
+
                 } else if (arg0.equals("-p")) {
                     // Port
                     argc++;
 
                     String val = args[argc];
-                    udpPort = Integer.parseInt(val);
+                    tcpPort = Integer.parseInt(val);
 
                 } else if (arg0.equals("-c")) {            
                     // columns
@@ -92,7 +103,8 @@ public class UDPListen {
         }
 
         if (Verbose.level >= 2) {
-            System.err.println("Listen on port: " + udpPort);
+            System.err.println("Connect to sender on host: " + host);
+            System.err.println("Connect to sender on port: " + tcpPort);
             System.err.println("Columns: " + columns);
         }
         
@@ -106,16 +118,18 @@ public class UDPListen {
 
 
     static void usage() {
-        System.err.println("UDPListen [-f [-|filename]] [-c cols] [-p port]");
+        System.err.println("TCPRequest [-f [-|filename]] [-c cols]  [-h sender_host] [-p sender_port]");
         System.exit(1);
     }
 
 
     protected static void processTraffic() throws IOException {
+        ByteBuffer buffer;
         DatagramPacket packet;
 
-        // Setup UDP Receiver
-        receiver = new UDPReceiver(udpPort);
+        // Setup TCP Receiver
+        // with address of sender
+        receiver = new TCPReceiver(new InetSocketAddress(host, tcpPort));
         receiver.start();
 
         // open file - maybe
@@ -172,8 +186,19 @@ public class UDPListen {
         int lastSeen = 0;
         int missingFragmentCount = 0;  // Count missing fragments
 
-        while ((packet = receiver.getPacket()) != null) {
+        while ((buffer = receiver.getPacket()) != null) {
             lastTime = System.currentTimeMillis();
+
+            // Convert the ByteBuffer into a DatagramPacket
+            // so the rest of the processing uses the same interfaces
+
+            // Get the bytes
+            byte[] data = buffer.array();
+
+            // Wrap up the bytes in a datagram packet
+            packet = new DatagramPacket(data, buffer.limit());
+
+            
             
             // RawDepacketizer returns SVCChunkInfos
             SVCChunkInfo chunk = (SVCChunkInfo)depacketizer.convert(packet);

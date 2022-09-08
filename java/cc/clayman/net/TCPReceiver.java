@@ -1,16 +1,18 @@
-// UDPReceiver.java
+// TCPReceiver.java
 // Author: Stuart Clayman
 // Email: s.clayman@ucl.ac.uk
-// Date: August 2021
+// Date: Sept 2022
 
 package cc.clayman.net;
 
 import java.io.IOException;
 import java.io.EOFException;
+import java.io.DataInputStream;
+import java.io.BufferedInputStream;
 import java.net.InetSocketAddress;
 import java.net.InetAddress;
-import java.net.DatagramSocket;
-import java.net.DatagramPacket;
+import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.net.UnknownHostException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -19,18 +21,19 @@ import cc.clayman.net.IP;
 import cc.clayman.util.Verbose;
 
 /**
- * Receive a DatagramPacket over the network using UDP as a transport.
+ * Receive bytes over the network using TCP as a transport.
+ * Convert into a ByteBuffer
  */
-public class UDPReceiver implements Runnable {
+public class TCPReceiver implements Runnable {
     /*
      * The socket doing the listening
      */
-    DatagramSocket socket;
+    Socket socket;
 
     /*
-     * A packet to receive
+     * A buffer to receive
      */
-    DatagramPacket packet;
+    ByteBuffer buffer;
 
     /*
      * The IP address
@@ -50,7 +53,7 @@ public class UDPReceiver implements Runnable {
     boolean running = false;
 
     /*
-     * The InetSocketAddress of the last packet received
+     * The InetSocketAddress of the last buffer received
      */
     InetAddress srcAddr;
 
@@ -60,26 +63,26 @@ public class UDPReceiver implements Runnable {
     boolean eof = false;
 
     /*
-     * The length of the last packet received
+     * The length of the last buffer received
      */
     int length;
 
     /*
-     * The source port of the last packet received
+     * The source port of the last buffer received
      */
     int srcPort;
 
-    // A queue of DatagramPackets
-    LinkedBlockingQueue<DatagramPacket> packetQueue = new LinkedBlockingQueue<DatagramPacket>();
+    // A queue of ByteBuffer
+    LinkedBlockingQueue<ByteBuffer> packetQueue = new LinkedBlockingQueue<ByteBuffer>();
 
 
     // Caller thread
     Thread caller;
     
     /**
-     * Construct a UDPReceiver.
+     * Construct a TCPReceiver.
      */
-    public UDPReceiver(int port) {
+    public TCPReceiver(int port) {
 	// address is explicitly set to null
 	address = null;
         
@@ -87,9 +90,9 @@ public class UDPReceiver implements Runnable {
     }
     
     /**
-     * Construct a UDPReceiver.
+     * Construct a TCPReceiver.
      */
-    public UDPReceiver(InetSocketAddress addr) {
+    public TCPReceiver(InetSocketAddress addr) {
 	// Receiving address
 	address = addr.getAddress();
         this.port = addr.getPort();
@@ -97,16 +100,16 @@ public class UDPReceiver implements Runnable {
 
     /**
      * Set up the socket for the given addr/port,
-     * and also a pre-prepared DatagramPacket.
+     * and also a pre-prepared ByteBuffer
      */
     protected boolean connect() throws IOException {
         if (this.address == null)
-            socket = new DatagramSocket(port);
+            throw new IOException("No address specified");
         else
-            socket = new DatagramSocket(port, address);
+            socket = new Socket(address, port);
 
-	// allocate an emtpy packet for use later
-	packet = newPacket();
+	// allocate an emtpy buffer for use later
+	buffer = newPacket();
 
         return true;
     }
@@ -164,29 +167,29 @@ public class UDPReceiver implements Runnable {
     }
 
     /*
-     * Create a new packet
+     * Create a new buffer
      */
-    protected DatagramPacket newPacket() {
-        return new DatagramPacket(new byte[IP.BASIC_PACKET_SIZE], IP.BASIC_PACKET_SIZE);
+    protected ByteBuffer newPacket() {
+        return ByteBuffer.allocate(IP.BASIC_PACKET_SIZE);
     }
 
 
 
 
     /**
-     * Get a DatagramPacket from the receiver
+     * Get a ByteBuffer from the receiver
      */
-    public DatagramPacket getPacket() {
+    public ByteBuffer getPacket() {
         caller = Thread.currentThread();
         
         if (eof) {
             return null;
         } else {
             try {
-                // get the next packet off the queue
-                DatagramPacket packet = packetQueue.take();
+                // get the next buffer off the queue
+                ByteBuffer buffer = packetQueue.take();
 
-                return packet;
+                return buffer;
             
             } catch (InterruptedException ie) {
                 return null;
@@ -196,31 +199,62 @@ public class UDPReceiver implements Runnable {
     
     /**
      * The main run loop.
-     * It receives a DatagramPacket  off the network 
+     * It receives some bytes off the network and creates a ByteBuffer
      * which is put on the packetQueue
      */
     public void run() {
 	// if we get here the thread must be running
         running = true;
+
+        DataInputStream in = null;
         
+        try {
+            // setup input stream 
+            in = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
+
+        } catch (IOException ioe) {
+            if (Verbose.level >= 2) {
+                System.err.println("IOException " + ioe);
+            }
+        }
+
+        byte[] chnk = new byte[4];
+        
+
         while (running) {
             try {
+
+                // Expect 8 byte header
+                // CHNK + size (as int)
+                
                 // receive from socket
-                socket.receive(packet);
+                in.read(chnk, 0, 4);
 
-                srcAddr = packet.getAddress();
-                length = packet.getLength();
-                srcPort = packet.getPort();
+                // check chnk == "CHNK"
+                if (! (chnk[0] == 'C' &&
+                       chnk[1] == 'H' &&
+                       chnk[2] == 'N' &&
+                       chnk[3] == 'K')) {
+                    // stream or logic failure
+                    throw new Error("Stream does not have CHNK in correct place");
+                }
 
-                //System.err.println("Received: " + srcAddr + "/" + srcPort + " length: " + length);
+                // now get the length of the content -- 32 bits
+                length = in.readInt();
 
+                // read the content into the buffer
+                in.readFully(buffer.array(), 0, length);
 
-		// now notify the receiver with the packet
-                // by putting the packet on a queue
-                packetQueue.put(packet);
+                // prepare the ByteBuffer
+                buffer.limit(length);
+                buffer.rewind();
 
-                // allocate an emtpy packet for use later
-                packet = newPacket();
+		// now notify the receiver with the buffer
+                // by putting the buffer on a queue
+                packetQueue.put(buffer);
+
+                // allocate an emtpy buffer for use later
+                buffer = newPacket();
 
             } catch (InterruptedException ie) {
                 if (Verbose.level >= 2) {
@@ -237,7 +271,6 @@ public class UDPReceiver implements Runnable {
         }
 
         stop();
-
     }
 
     /**
