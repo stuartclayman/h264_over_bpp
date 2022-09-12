@@ -497,7 +497,7 @@ public class TCPRequest {
     }
 
     protected static void printChunk(SVCChunkInfo chunk, int count, int total, int payloadSize) {
-        
+
         // try and find the no of columns from the Environment
         String columnsEnv = System.getenv("COLUMNS");
 

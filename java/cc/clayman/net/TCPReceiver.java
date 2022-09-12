@@ -168,7 +168,7 @@ public class TCPReceiver implements Runnable {
      */
     protected ByteBuffer newPacket(int length) {
         // Need enough space to convert the buffer to a DatagramPacket later on
-        return ByteBuffer.allocate(length + 56);
+        return ByteBuffer.allocate((length > IP.BASIC_PACKET_SIZE ? length : IP.BASIC_PACKET_SIZE));
     }
 
 
@@ -285,7 +285,7 @@ public class TCPReceiver implements Runnable {
                     t1 = System.nanoTime();
 
                     if (Verbose.level >= 2) {
-                        System.err.println((((float)(t1 - t0)) / (float)1000000) + " Received " + count + " /  " + total);
+                        System.err.printf("%1.6f Received %d / %d\n", (((float)(t1 - t0)) / (float)1000000), count, total);
                     }
                 }
                 
