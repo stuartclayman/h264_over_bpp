@@ -39,6 +39,9 @@ public class UDPListen {
 
     static int columns = 80;    // default no of cols on terminal
 
+    // timer for end of run when no traffic
+    static int noTrafficEndTimerDuration = 5;
+
 
     public static void main(String[] args) {
         if (args.length == 0) {
@@ -70,6 +73,13 @@ public class UDPListen {
 
                     String val = args[argc];
                     columns = Integer.parseInt(val);
+
+                } else if (arg0.equals("-D")) {
+                    // no traffic end timer duration
+                    argc++;
+
+                    String val = args[argc];
+                    noTrafficEndTimerDuration = Integer.parseInt(val);
 
                 } else if (arg0.startsWith("-v")) {
                     if (arg0.equals("-v")) {
@@ -146,7 +156,7 @@ public class UDPListen {
         Timer timer = null;
 
         // set up timer to count throughput
-        TimerTask timerTask = new TimedCount(5);
+        TimerTask timerTask = new TimedCount(noTrafficEndTimerDuration);
 
         // if there is no timer, start one
         if (timer == null) {
@@ -425,7 +435,7 @@ public class UDPListen {
                 long thisTime = System.currentTimeMillis();
 
 
-                if (count != 0 && ((thisTime - lastTime) / 1000) >= 5) {
+                if (count != 0 && ((thisTime - lastTime) / 1000) >= timeOut) {
                     // no recv after 5 secs
                     if (Verbose.level >= 3) {
                         System.err.println("stopping");

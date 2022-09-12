@@ -36,6 +36,9 @@ public class BPPListen {
     static int udpPort = 6799;
 
     static int columns = 80;    // default no of cols on terminal
+    
+    // timer for end of run when no traffic
+    static int noTrafficEndTimerDuration = 5;
 
     public static void main(String[] args) {
         if (args.length == 0) {
@@ -62,6 +65,13 @@ public class BPPListen {
 
                     String val = args[argc];
                     columns = Integer.parseInt(val);
+
+                } else if (arg0.equals("-D")) {
+                    // no traffic end timer duration
+                    argc++;
+
+                    String val = args[argc];
+                    noTrafficEndTimerDuration = Integer.parseInt(val);
 
                 } else if (arg0.startsWith("-v")) {
                     if (arg0.equals("-v")) {
@@ -114,7 +124,7 @@ public class BPPListen {
         lastTime = System.currentTimeMillis();
 
         // Wait for 5 secs before ending
-        TimerTask timerTask = new TimedCount(streamer, 5);
+        TimerTask timerTask = new TimedCount(streamer, noTrafficEndTimerDuration);
 
         Timer timer = null;
 

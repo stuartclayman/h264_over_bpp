@@ -44,6 +44,10 @@ public class H264Listen {
     static String filename = "-";
     static NALOutputStream outputStream = null;
 
+    // timer for end of run when no traffic
+    static int noTrafficEndTimerDuration = 5;
+    
+
     public static void main(String[] args) {
         if (args.length == 0) {
             usage();
@@ -73,6 +77,13 @@ public class H264Listen {
 
                     String val = args[argc];
                     NO_OF_VCLS = Integer.parseInt(val);
+
+                } else if (arg0.equals("-D")) {
+                    // no traffic end timer duration
+                    argc++;
+
+                    String val = args[argc];
+                    noTrafficEndTimerDuration = Integer.parseInt(val);
 
                 } else if (arg0.startsWith("-v")) {
                     if (arg0.equals("-v")) {
@@ -154,7 +165,7 @@ public class H264Listen {
         lastTime = System.currentTimeMillis();
 
         // Wait for 5 secs before ending
-        TimerTask timerTask = new TimedCount(streamer, 5);
+        TimerTask timerTask = new TimedCount(streamer, noTrafficEndTimerDuration);
 
         Timer timer = null;
 
