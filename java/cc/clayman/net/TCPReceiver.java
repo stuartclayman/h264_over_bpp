@@ -108,9 +108,6 @@ public class TCPReceiver implements Runnable {
         else
             socket = new Socket(address, port);
 
-	// allocate an emtpy buffer for use later
-	buffer = newPacket();
-
         return true;
     }
 
@@ -169,8 +166,9 @@ public class TCPReceiver implements Runnable {
     /*
      * Create a new buffer
      */
-    protected ByteBuffer newPacket() {
-        return ByteBuffer.allocate(IP.BASIC_PACKET_SIZE);
+    protected ByteBuffer newPacket(int length) {
+        // Need enough space to convert the buffer to a DatagramPacket later on
+        return ByteBuffer.allocate(length + 56);
     }
 
 
@@ -206,11 +204,13 @@ public class TCPReceiver implements Runnable {
 	// if we get here the thread must be running
         running = true;
 
+        BufferedInputStream bin = null;
         DataInputStream in = null;
         
         try {
             // setup input stream 
-            in = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
+            bin = new BufferedInputStream(socket.getInputStream());
+            in = new DataInputStream(bin);
 
         } catch (IOException ioe) {
             if (Verbose.level >= 2) {
@@ -242,8 +242,53 @@ public class TCPReceiver implements Runnable {
                 // now get the length of the content -- 32 bits
                 length = in.readInt();
 
+                // double check size of buffer
+                if (length > IP.BASIC_PACKET_SIZE) {
+                    throw new Error("TCPReceiver: sender created packet of size " + length + " > expected size " + IP.BASIC_PACKET_SIZE);
+                }
+
+                // allocate an emtpy buffer for use later
+                buffer = newPacket(length);
+
+                if (Verbose.level >= 2) {
+                    System.err.println("Buffer allocate " + buffer.capacity());
+                }
+
+
                 // read the content into the buffer
-                in.readFully(buffer.array(), 0, length);
+
+                // the following doesn't always work with TCP streams
+                // need to double check some aspects
+                //
+                // in.readFully(buffer.array(), 0, length);
+
+                // Alternative version
+                // Read some bytes in a loop
+
+                int count = 0;  // no of bytes returned on a read()
+                int total = 0;  // total bytes read in
+                long t0 = 0;
+                long t1 = 0;
+
+                while (total < length) {
+
+                    if (Verbose.level >= 2) {
+                        System.err.println("Reading " + (length - total) + " @ [" + total + "]");
+                    }
+
+                    t0 = System.nanoTime();
+
+                    count = bin.read(buffer.array(), total, length - total);
+                    
+                    total += count;
+
+                    t1 = System.nanoTime();
+
+                    if (Verbose.level >= 2) {
+                        System.err.println((((float)(t1 - t0)) / (float)1000000) + " Received " + count + " /  " + total);
+                    }
+                }
+                
 
                 // prepare the ByteBuffer
                 buffer.limit(length);
@@ -252,9 +297,6 @@ public class TCPReceiver implements Runnable {
 		// now notify the receiver with the buffer
                 // by putting the buffer on a queue
                 packetQueue.put(buffer);
-
-                // allocate an emtpy buffer for use later
-                buffer = newPacket();
 
             } catch (InterruptedException ie) {
                 if (Verbose.level >= 2) {
