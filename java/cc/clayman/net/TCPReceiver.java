@@ -219,7 +219,7 @@ public class TCPReceiver implements Runnable {
         }
 
         byte[] chnk = new byte[4];
-        
+        int chunk = 0;
 
         while (running) {
             try {
@@ -244,7 +244,7 @@ public class TCPReceiver implements Runnable {
 
                 // double check size of buffer
                 if (length > IP.BASIC_PACKET_SIZE) {
-                    throw new Error("TCPReceiver: sender created packet of size " + length + " > expected size " + IP.BASIC_PACKET_SIZE);
+                    throw new Error("TCPReceiver: Chunk " + chunk + " sender created packet of size " + length + " > expected size " + IP.BASIC_PACKET_SIZE);
                 }
 
                 // allocate an emtpy buffer for use later
@@ -297,6 +297,8 @@ public class TCPReceiver implements Runnable {
 		// now notify the receiver with the buffer
                 // by putting the buffer on a queue
                 packetQueue.put(buffer);
+
+                chunk++;
 
             } catch (InterruptedException ie) {
                 if (Verbose.level >= 2) {
