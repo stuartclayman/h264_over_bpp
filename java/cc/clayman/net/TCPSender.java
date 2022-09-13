@@ -272,6 +272,11 @@ public class TCPSender implements Runnable {
             packet.position(4);
             packet.putInt(recvArray.length);
 
+            // check for really big numbers
+            if (recvArray.length > 65535) {
+                throw new Error("TCPSender: reader created payload of size " + recvArray.length + " > expected size " + 65535);
+            }
+
             // This works too
             //packet.put(4, (byte)(((recvArray.length & 0xFF000000) >> 24) & 0xFF));
             //packet.put(5, (byte)(((recvArray.length & 0x00FF0000) >> 16) & 0xFF));
