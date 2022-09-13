@@ -25,10 +25,10 @@ public class TCPSend {
     static int udpPort = 6799;
 
     static TCPSender sender = null;
-    static int sleep = 7;       // default sleep (in milliseconds) between chunks
+    static float sleep = 7.0f;       // default sleep (in milliseconds) between chunks
     static ChunkPacketizer packetizer = null;
-    static int columns = 80;    // default no of cols on terminal
-    static int packetSize = 1500;  // packet size
+    static int columns = 80;         // default no of cols on terminal
+    static int packetSize = 1500;    // packet size
 
 
     
@@ -72,7 +72,7 @@ public class TCPSend {
                     argc++;
 
                     String val = args[argc];
-                    sleep = Integer.parseInt(val);
+                    sleep = Float.parseFloat(val);
                     argc++;
              
                 } else if (arg0.equals("-c")) {            
@@ -175,9 +175,12 @@ public class TCPSend {
             // condition and threshold set to 0
             sender.sendPayload(packetizer.convert(count, 0, 0, chunk));
     
-            // fix sleep from student code - awaiting proper algorithm
+            // sleep a bit
             try { 
-                Thread.sleep(sleep);
+                // Get second part and nanosecond part
+                int secondPart = (int)sleep;
+                int nanosecondPart = (int)((sleep - secondPart) * 1000000);
+                Thread.sleep(secondPart, nanosecondPart);
             } catch (InterruptedException ie) {
             }
         }

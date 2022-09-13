@@ -25,7 +25,7 @@ public class BPPSend {
     static int udpPort = 6799;
 
     static UDPSender sender = null;
-    static float sleep = 7.0f;                 // default sleep (in milliseconds) between chunks
+    static float sleep = 7.0f;            // default sleep (in milliseconds) between chunks
     static boolean adaptiveSleep = true;  // show we do adaptive sleep
     static int packetsPerSecond = 0;      // no of packets per second
     static int columns = 80;              // default no of cols on terminal
@@ -275,7 +275,7 @@ public class BPPSend {
             // now send it
             sender.sendPayload(packetizer.convert(count, condition, threshold, chunk));
 
-            // fix sleep from student code - awaiting proper algorithm
+            // sleep a bit
             try {
                 if (adaptiveSleep) {
 
