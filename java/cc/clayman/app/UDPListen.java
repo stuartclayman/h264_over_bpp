@@ -258,9 +258,9 @@ public class UDPListen {
 
                 if (Verbose.level >= 1) {
                     if (type == NALType.VCL) {
-                        System.err.println("LISTEN: RECEIVE seqNo: " + seqNo + " NALNumber: " + nalNo + " count: " + nalCount + " NALType: " + type + " VCL no: " + vclCount + " fragment: " + fragment );
+                        System.err.println("LISTEN: RECEIVE seqNo: " + seqNo + " NALNumber: " + nalNo + " count: " + nalCount + " NALType: " + type + " VCL no: " + vclCount + " fragment: " + fragment + " Time: " + System.nanoTime());
                     } else {
-                        System.err.println("LISTEN: RECEIVE seqNo: " + seqNo  + " NALNumber: " + nalNo + " count: " + nalCount + " NALType: " + type);
+                        System.err.println("LISTEN: RECEIVE seqNo: " + seqNo  + " NALNumber: " + nalNo + " count: " + nalCount + " NALType: " + type + " Time: " + System.nanoTime());
                     }
                 }
 
@@ -330,8 +330,8 @@ public class UDPListen {
                         System.err.printf("%-18s", "LISTEN: DROPPED ");           //
                         System.err.printf("seqNo: %-8d", lastSeen + m);    // N
                         //System.err.printf(" NALNumber: %-8d", nalNo + m);    // N
-                        System.err.printf("packet: %-8d", m);    // N
-                
+                        System.err.printf(" packet: %-8d", m);    // N
+                        System.err.printf(" Time: %d", System.nanoTime());
                         
                         System.err.println("");
                     }

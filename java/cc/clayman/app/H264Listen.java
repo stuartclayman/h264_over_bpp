@@ -209,7 +209,7 @@ public class H264Listen {
                     }
 
                     if (Verbose.level >= 1) {
-                        System.err.println("LISTEN: NAL " + nalResult.nalType + " " + nalResult.number + " / " + qualityLayer);
+                        System.err.println("LISTEN: NAL " + nalResult.nalType + " " + nalResult.number + " / " + qualityLayer + " Time: " + System.nanoTime());
                     }
 
 
@@ -218,7 +218,7 @@ public class H264Listen {
                     droppedLayer[qualityLayer] = true;
 
                     if (Verbose.level >= 1) {
-                        System.err.println("LISTEN: WASHED " + nalResult.nalType + " " + nalResult.number + " / " + qualityLayer);
+                        System.err.println("LISTEN: WASHED " + nalResult.nalType + " " + nalResult.number + " / " + qualityLayer + " Time: " + System.nanoTime());
 
                         System.err.printf("QUALITY: WASHED VCLNo: %d Qualitylayer: %d Time: %d\n", vclCount, qualityLayer, System.nanoTime());
                         
@@ -240,7 +240,7 @@ public class H264Listen {
                     qualityLayer++;
 
                     if (Verbose.level >= 1) {
-                        System.err.println("LISTEN: DROPPED " +  nalResult.nalType + " " + nalResult.number + " / " + qualityLayer);
+                        System.err.println("LISTEN: DROPPED " +  nalResult.nalType + " " + nalResult.number + " / " + qualityLayer + " Time: " + System.nanoTime());
                     }
 
                     
@@ -291,7 +291,7 @@ public class H264Listen {
                             // was washed away, so we cannot use it as
                             // there is a dependency
                             if (Verbose.level >= 1) {
-                                System.err.println("LISTEN: NOT_WRITING " + nalResult.number + " / " + qualityLayer);
+                                System.err.println("LISTEN: NOT_WRITING " + nalResult.number + " / " + qualityLayer + " Time: " + System.nanoTime());
 
 
                                 System.err.printf("QUALITY: NOT_WRITING VCLNo: %d FrameNo: %s Frame: %s Temporal: %s  Qualitylayer: %d Time: %d\n", vclCount, vclCount + currentNALModel.adjustment, currentNALModel.frame, currentNALModel.temporal, qualityLayer, System.nanoTime());  // WAS currentTimeMillis());
