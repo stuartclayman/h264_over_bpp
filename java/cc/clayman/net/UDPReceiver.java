@@ -230,8 +230,11 @@ public class UDPReceiver implements Runnable {
                 eof = true;
                 running = false;
             } catch (IOException ioe) {
-                if (Verbose.level >= 2) {
-                    System.err.println("IOException " + ioe);
+                eof = true;
+                if (running) {
+                    if (Verbose.level >= 2) {
+                        System.err.println("IOException " + ioe);
+                    }
                 }
             }
         }

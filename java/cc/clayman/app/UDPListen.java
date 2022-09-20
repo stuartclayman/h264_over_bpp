@@ -438,7 +438,7 @@ public class UDPListen {
                 if (count != 0 && ((thisTime - lastTime) / 1000) >= timeOut) {
                     // no recv after 5 secs
                     if (Verbose.level >= 3) {
-                        System.err.println("stopping");
+                        System.err.println("stopping after " + timeOut);
                     }
                     System.out.flush();
                     receiver.stop();
