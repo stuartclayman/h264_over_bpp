@@ -179,7 +179,7 @@ public class UDPReceiver implements Runnable {
     public DatagramPacket getPacket() {
         caller = Thread.currentThread();
         
-        if (eof) {
+        if (eof && packetQueue.size() == 0) {
             return null;
         } else {
             try {
@@ -230,7 +230,6 @@ public class UDPReceiver implements Runnable {
                 eof = true;
                 running = false;
             } catch (IOException ioe) {
-                eof = true;
                 if (running) {
                     if (Verbose.level >= 2) {
                         System.err.println("IOException " + ioe);

@@ -180,7 +180,7 @@ public class TCPReceiver implements Runnable {
     public ByteBuffer getPacket() {
         caller = Thread.currentThread();
         
-        if (eof) {
+        if (eof && packetQueue.size() == 0) {
             return null;
         } else {
             try {
@@ -205,12 +205,10 @@ public class TCPReceiver implements Runnable {
         running = true;
 
         BufferedInputStream bin = null;
-        DataInputStream in = null;
         
         try {
             // setup input stream 
             bin = new BufferedInputStream(socket.getInputStream());
-            in = new DataInputStream(bin);
 
         } catch (IOException ioe) {
             if (Verbose.level >= 2) {
@@ -228,7 +226,15 @@ public class TCPReceiver implements Runnable {
                 // CHNK + size (as int)
                 
                 // receive from socket
-                in.read(chnk, 0, 4);
+                int readVal = bin.read(chnk, 0, 4);
+
+                if (readVal == -1) {
+                    if (Verbose.level >= 2) {
+                        System.err.println("readVal == -1");
+                        System.err.println("packetQueue.size() == " + packetQueue.size());
+                    }
+                    break;
+                }
 
                 // check chnk == "CHNK"
                 if (! (chnk[0] == 'C' &&
@@ -240,7 +246,8 @@ public class TCPReceiver implements Runnable {
                 }
 
                 // now get the length of the content -- 32 bits
-                length = in.readInt();
+                length = ((bin.read() & 0xFF) << 24) | ((bin.read()  & 0xFF) << 16) | ((bin.read()  & 0xFF) << 8) | (bin.read()  & 0xFF) ;
+
 
                 // double check size of buffer
                 if (length > IP.BASIC_PACKET_SIZE) {
@@ -307,8 +314,11 @@ public class TCPReceiver implements Runnable {
             } catch (EOFException ee) {
                 eof = true;
                 running = false;
+                if (Verbose.level >= 2) {
+                    System.err.println("EOFException");
+                }
             } catch (IOException ioe) {
-                eof = true;
+                // Can get Socket closed even if there is still data to read
                 if (running) {
                     if (Verbose.level >= 2) {
                         System.err.println("IOException " + ioe);
@@ -317,7 +327,7 @@ public class TCPReceiver implements Runnable {
             }
         }
 
-        stop();
+        // wait for the caller to get all the elements from the packetQueue
     }
 
     /**
