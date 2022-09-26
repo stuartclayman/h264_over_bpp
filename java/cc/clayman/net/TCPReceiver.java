@@ -228,10 +228,10 @@ public class TCPReceiver implements Runnable {
                 // receive from socket
                 int readVal = bin.read(chnk, 0, 4);
 
-                if (readVal == -1) {
+                if (readVal == -1) {   // this is the expected place to see EOF
                     if (Verbose.level >= 2) {
-                        System.err.println("readVal == -1");
-                        System.err.println("packetQueue.size() == " + packetQueue.size());
+                        System.err.println("Read -> EOF.");
+                        System.err.println("Remaining packetQueue size == " + packetQueue.size());
                     }
                     break;
                 }

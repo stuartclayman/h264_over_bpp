@@ -372,14 +372,14 @@ public class TCPRequest {
             System.err.println("end of loop");
         }
 
-        // stop receiver
-        receiver.stop();
-
         timer.cancel();
 
         if (outputStream != null) {
             outputStream.close();
         }
+
+        // stop receiver
+        receiver.stop();
 
     }
 
