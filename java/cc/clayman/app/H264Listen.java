@@ -194,11 +194,11 @@ public class H264Listen {
             if (nalResult != null) {
 
                 if (Verbose.level >= 1) {
-                    System.err.println(nalResult);
+                    System.err.println(qualityLayer + " " + nalResult);
                 }
 
 
-
+                
 
                 if (nalResult.state == NALResult.State.NAL) {
 
@@ -227,7 +227,7 @@ public class H264Listen {
 
 
                     // increase qualityLayer for next time
-                    qualityLayer++;
+                    qualityLayer = (qualityLayer + 1) % NO_OF_VCLS;
 
                     continue;
                                     
@@ -237,7 +237,8 @@ public class H264Listen {
                     droppedLayer[qualityLayer] = true;
 
                     // increase qualityLayer for next time
-                    qualityLayer++;
+                    qualityLayer = (qualityLayer + 1) % NO_OF_VCLS;
+
 
                     if (Verbose.level >= 1) {
                         System.err.println("LISTEN: DROPPED " +  nalResult.nalType + " " + nalResult.number + " / " + qualityLayer + " Time: " + System.nanoTime());
@@ -301,7 +302,8 @@ public class H264Listen {
 
                         
                         // increase qualityLayer for next time
-                        qualityLayer++;
+                        qualityLayer = (qualityLayer + 1) % NO_OF_VCLS;
+
 
                     } else {
                         prevIsNonVCL = true;
