@@ -81,7 +81,10 @@ public class UDPSender implements Runnable {
                 inetAddr = InetAddress.getByName(host);
             }
 
-            System.err.println("UDPSender connect " +  socket.getLocalAddress() + ":" + socket.getLocalPort() + " to " + socket.getInetAddress() + ":" + socket.getPort());
+            if (Verbose.level >= 1) {
+                System.err.println("UDPSender connect " +  socket.getLocalAddress() + ":" + socket.getLocalPort() + " to " + socket.getInetAddress() + ":" + socket.getPort());
+            }
+            
             isConnected = true;
             return true;
         }
@@ -176,7 +179,7 @@ public class UDPSender implements Runnable {
             try {
                 // get the next packet off the queue
                 DatagramPacket packet = packetQueue.take();
-            
+
                 transmitDatagram(packet);
                 
             } catch (InterruptedException ie) {
@@ -206,7 +209,9 @@ public class UDPSender implements Runnable {
                 socket.send(packet);
                 outCounter++;
 
-                //System.err.print("+");
+                //if (Verbose.level > 2) {
+                //    System.err.print("+");
+                //}
 
                 return true;
             } catch (java.net.PortUnreachableException pue) {
@@ -229,13 +234,34 @@ public class UDPSender implements Runnable {
      * @return 1 normally
      */
     public int sendPayload(byte[] recvArray) {
+        // Create a DatagramPacket
+        // Address will be null, relies on connect() address and port to send packet
+        DatagramPacket packet = new DatagramPacket(recvArray, recvArray.length);
 
+        return sendPayload(packet);
+    }
+    
+
+    /**
+     * 
+     * @return 0 if something goes wrong
+     * @return 1 normally
+     */
+    public int sendPayload(DatagramPacket packet) {
         try {
-            // Create a DatagramPacket
-            // Set inetAddr and port
-            // Although we did a connect(), some platforms don't seem to do it properly.
-            DatagramPacket packet = new DatagramPacket(recvArray, recvArray.length);
-            
+
+            // ensure packet has correct address and port
+            if (packet.getAddress() != null && 
+                ((! (packet.getAddress().equals(getRemoteHost()))) || 
+                 (packet.getPort() != getRemotePort()))) {
+
+                // Set inetAddr and port
+                // Although we did a connect(), some platforms don't seem to do it properly.
+                packet.setAddress(getRemoteHost());
+                packet.setPort(getRemotePort());                
+            }
+
+
             // add the DatagramPacket to the queue
             packetQueue.put(packet);
 
