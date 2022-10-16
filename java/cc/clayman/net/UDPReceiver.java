@@ -75,6 +75,11 @@ public class UDPReceiver implements Runnable {
 
     // Caller thread
     Thread caller;
+
+
+    protected UDPReceiver() {
+        // for subclasses
+    }
     
     /**
      * Construct a UDPReceiver.
@@ -115,11 +120,13 @@ public class UDPReceiver implements Runnable {
      * Close the socket 
      */
     protected void close() {
-        try {
-            eof = true;
-            socket.close();
-        } catch (Exception ioe) {
-            throw new Error("Socket: " + socket + " can't close");
+        if (! socket.isClosed()) {
+            try {
+                eof = true;
+                socket.close();
+            } catch (Exception ioe) {
+                throw new Error("Socket: " + socket + " can't close");
+            }
         }
     }
 

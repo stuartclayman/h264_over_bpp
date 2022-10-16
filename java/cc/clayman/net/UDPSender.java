@@ -235,8 +235,16 @@ public class UDPSender implements Runnable {
      */
     public int sendPayload(byte[] recvArray) {
         // Create a DatagramPacket
-        // Address will be null, relies on connect() address and port to send packet
-        DatagramPacket packet = new DatagramPacket(recvArray, recvArray.length);
+        // Address can be null, relies on connect() address and port to send packet
+        DatagramPacket packet = null;
+
+        // Multicast packets need to be constructed differently
+        if (inetAddr.isMulticastAddress()) {
+            packet = new DatagramPacket(recvArray, recvArray.length, inetAddr, port);
+        } else {
+            packet = new DatagramPacket(recvArray, recvArray.length);
+
+        }
 
         return sendPayload(packet);
     }

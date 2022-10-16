@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 
 import cc.clayman.h264.*;
 import cc.clayman.chunk.*;
@@ -37,6 +40,10 @@ public class H264Listen {
     static long lastTime = 0;
 
 
+    // listen host
+    static String host = null;
+    static InetAddress inetAddr = null;
+    
     // listen port
     static int udpPort = 6799;
 
@@ -63,6 +70,24 @@ public class H264Listen {
                     // Output filename
                     argc++;
                     filename = args[argc];
+
+                } else if (arg0.equals("-h")) {
+                    // Host
+                    argc++;
+                    host = args[argc];
+
+                    try {
+                        if (host.equals("localhost")) {
+                            inetAddr = InetAddress.getLocalHost();
+                        } else {
+                            inetAddr = InetAddress.getByName(host);
+                        }
+                    } catch (UnknownHostException uhe) {
+                        System.err.println("UnknownHostException " + host);
+                        System.exit(1);
+                    }
+
+                    
 
                 } else if (arg0.equals("-p")) {
                     // Port
@@ -118,14 +143,31 @@ public class H264Listen {
     }
 
     static void usage() {
-        System.err.println("H264Listen [-f [-|filename]] [-p port]");
+        System.err.println("H264Listen [-f [-|filename]] [-h host] [-p port]");
         System.exit(1);
     }
 
 
     protected static void processTraffic() throws IOException {
-        // Setup UDP Receiver
-        receiver = new UDPReceiver(udpPort);
+        // Check where we are sending
+
+        if (inetAddr == null) {
+            // Setup UDP Receiver
+            receiver = new UDPReceiver(udpPort);
+        } else {
+            // got an inetAddr
+            if (inetAddr.isMulticastAddress()) {
+                receiver = new MulticastReceiver(new InetSocketAddress(inetAddr, udpPort));
+
+                if (Verbose.level >= 1) {
+                    System.err.println("MulticastReceiver " + inetAddr + " / " + udpPort);
+                }
+
+            } else {
+                receiver = new UDPReceiver(new InetSocketAddress(inetAddr, udpPort));
+            }
+        }
+                  
         // and the ChunkStreamer
         streamer = new UDPChunkStreamer(receiver);
         // and the MultiNALRebuilder
