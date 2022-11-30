@@ -1,4 +1,4 @@
-package test.bpp;
+package netfn.bpp;
 
 import java.net.DatagramPacket;
 import cc.clayman.bpp.BPP;
@@ -64,6 +64,12 @@ public class BPPUnpack {
         // set secondStart
         secondStart = System.currentTimeMillis();
     }
+
+    // Adjust the bandwidth
+    public void setBandwidth(int bitsPerSecond) {
+        this.availableBandwidthBits = bitsPerSecond;
+        this.availableBandwidth = bitsPerSecond >> 3;
+    }    
 
     /**
      * Unpack a DatagramPacket

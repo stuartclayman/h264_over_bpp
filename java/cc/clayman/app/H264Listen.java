@@ -299,7 +299,7 @@ public class H264Listen {
                     // A good test of the system
                     // Can we print using the printChunk()
                     // from a class on the server side
-                    printNAL(nal, count, total);
+                    // printNAL(nal, count, total);
 
                     // Is it a VCL 
                     if (nal.isVideo()) {
@@ -391,17 +391,17 @@ public class H264Listen {
     protected static void printNAL(NAL nal, int count, int total) {
         int size = nal.getSize();
 
-        System.out.printf("%-8d", count);               // N
-        System.out.printf(" %-6d", size*8);             // no of bits
-        System.out.printf(" %-5d", size);               // no of bytes
-        System.out.printf(" %-9d", (total - size) + 1);  // start bytes
-        System.out.printf(" %-10d", total);              // end bytes
+        System.err.printf("%-8d", count);               // N
+        System.err.printf(" %-6d", size*8);             // no of bits
+        System.err.printf(" %-5d", size);               // no of bytes
+        System.err.printf(" %-9d", (total - size) + 1);  // start bytes
+        System.err.printf(" %-10d", total);              // end bytes
 
-        System.out.printf(" %-1d", nal.getNRI());       // NRI
-        System.out.printf(" %-2d",nal.getType());       // Type
-        System.out.printf(" %-7s",nal.getTypeClass());  // VCL or non-VCL
-        System.out.printf(" %s", nal.getTypeString());  // Type description
-        System.out.println();
+        System.err.printf(" %-1d", nal.getNRI());       // NRI
+        System.err.printf(" %-2d",nal.getType());       // Type
+        System.err.printf(" %-7s",nal.getTypeClass());  // VCL or non-VCL
+        System.err.printf(" %s", nal.getTypeString());  // Type description
+        System.err.println();
                     
     }
     

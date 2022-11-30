@@ -1,4 +1,4 @@
-package test.bpp;
+package netfn.bpp;
 
 import java.nio.ByteBuffer;
 import java.io.IOException;

@@ -19,6 +19,7 @@
     <mkdir dir="${classes}"/>
     <javac debug="on" srcdir="${sources}" classpath="${external.jars}" destdir="${classes}">
       <include name="cc/clayman/**" />
+      <include name="netfn/**" />
       <include name="test/**" />
 
       <!--<compilerarg value="-Xlint:unchecked" />--> 

@@ -1,4 +1,4 @@
-package test.bpp;
+package netfn.bpp;
 
 import java.net.DatagramPacket;
 import cc.clayman.util.Verbose;
@@ -79,6 +79,12 @@ public class BPPFn  {
             System.err.println(e.getClass() + ": " + e.getMessage());
             return null;
         }
+    }
+
+    // Adjust the bandwidth
+    public void setBandwidth(int bitsPerSecond) {
+        // inform the unpacker
+        unpack.setBandwidth(bitsPerSecond);
     }
     
 }
