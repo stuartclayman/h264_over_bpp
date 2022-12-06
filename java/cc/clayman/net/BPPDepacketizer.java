@@ -182,8 +182,13 @@ public class BPPDepacketizer implements ChunkDepacketizer {
             // check if nalNo has wrapped
             // 4095 = 12 bits of 1s
             // only do on first chunk
-            if (c==0 && nalNo < (lastNalNo % 4096)) {
-                nalBaseCount += 4096;
+            int lastNalNoMod = lastNalNo % 4096;
+            if (c==0 && nalNo < lastNalNoMod) {
+                // sometimes packets get reordered, so we need to check
+                // if the values are similar
+                if (lastNalNoMod > 4090 && nalNo < 5) {
+                    nalBaseCount += 4096;
+                }
             }
 
             // process read nalNo
