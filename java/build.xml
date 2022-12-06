@@ -38,9 +38,10 @@
     <!-- add src -->
     <jar update="true" jarfile="${jars}/bpp-impl-${release}.jar" basedir="${basedir}" includes="cc/clayman/**, test/**" excludes="**/*.class" />
 
-    <jar jarfile="${jars}/bpp-impl-bin-${release}.jar" basedir="classes" includes="cc/**,test/**" excludes="**/*.java" />
-    <jar jarfile="${jars}/bpp-impl-src-${release}.jar" basedir="${basedir}/src" includes="cc/clayman/**,test/**" excludes="**/*.class" />
+    <jar jarfile="${jars}/bpp-impl-bin-${release}.jar" basedir="classes" includes="cc/**,test/**,netfn/**" excludes="**/*.java" />
+    <jar jarfile="${jars}/bpp-impl-src-${release}.jar" basedir="${basedir}/src" includes="cc/clayman/**,netfn/**,test/**" excludes="**/*.class" />
   </target>
+
 
   <!-- JavaDoc -->
   <target name="javadoc" depends="build">
