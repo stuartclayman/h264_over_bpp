@@ -218,10 +218,19 @@ public class MultiNALRebuilder implements NALRebuilder {
                         } else if (processedChunk.state == RebuildState.State.MISSSING) {
                             // What shall we do on a MISSSING one
                             if (Verbose.level >= 1) {
-                                System.err.println("MISSING " + processedChunk.nalNumber);
+                                System.err.println("MISSING at " + processedChunk.nalNumber + ": lost " + expectedNALNo + " -> " + (processedChunk.nalNumber - 1));
                             }
 
-                            expectedNALNo++;
+                            if (processedChunk.nalNumber < expectedNALNo) {
+                                // out of order
+                                if (Verbose.level >= 1) {
+                                    System.err.println("MISSING  out of order: " + processedChunk.nalNumber);
+                                }
+
+                            } else {
+                                // expectedNALNo = received nalNumber + 1
+                                expectedNALNo = processedChunk.nalNumber + 1;
+                            }
 
                             // Return Error somehow
                             
