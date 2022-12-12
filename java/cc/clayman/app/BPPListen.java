@@ -12,6 +12,7 @@ import cc.clayman.h264.*;
 import cc.clayman.chunk.*;
 import cc.clayman.processor.MultiNALProcessor;
 import cc.clayman.processor.UDPChunkStreamer;
+import cc.clayman.processor.BufferingUDPChunkStreamer;
 import cc.clayman.net.*;
 import cc.clayman.terminal.ChunkDisplay;
 import cc.clayman.util.Verbose;
@@ -115,7 +116,7 @@ public class BPPListen {
         // Setup UDP Receiver
         receiver = new UDPReceiver(udpPort);
         // and the ChunkStreamer
-        streamer = new UDPChunkStreamer(receiver);
+        streamer = new BufferingUDPChunkStreamer(receiver);
         streamer.start();
 
 

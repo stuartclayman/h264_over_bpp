@@ -240,6 +240,7 @@ public class BPPDepacketizer implements ChunkDepacketizer {
         // Create a ChunkInfo
         // Pass in array of sizes
         SVCChunkInfo chunk = new SVCChunks(contentSizes);
+        chunk.setSequenceNumber(sequence);
 
         // bufPos now should be at first content
 

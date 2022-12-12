@@ -16,6 +16,7 @@ import cc.clayman.h264.*;
 import cc.clayman.chunk.*;
 import cc.clayman.processor.MultiNALRebuilder;
 import cc.clayman.processor.UDPChunkStreamer;
+import cc.clayman.processor.BufferingUDPChunkStreamer;
 import cc.clayman.processor.NALResult;
 import cc.clayman.net.*;
 import cc.clayman.util.Verbose;
@@ -169,7 +170,7 @@ public class H264Listen {
         }
                   
         // and the ChunkStreamer
-        streamer = new UDPChunkStreamer(receiver);
+        streamer = new BufferingUDPChunkStreamer(receiver);
         // and the MultiNALRebuilder
         rebuilder = new MultiNALRebuilder(streamer, NO_OF_VCLS);
         rebuilder.start();

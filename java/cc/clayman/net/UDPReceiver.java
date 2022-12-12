@@ -14,6 +14,7 @@ import java.net.DatagramPacket;
 import java.net.UnknownHostException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 import cc.clayman.net.IP;
 import cc.clayman.util.Verbose;
@@ -62,7 +63,18 @@ public class UDPReceiver implements Runnable {
     /*
      * The length of the last packet received
      */
-    int length;
+    int length = -1;
+
+
+    /*
+     * How many times did no packet arrive
+     */
+    int noPacketCount = 0;
+
+    /*
+     * After NoTrafficThreshold packets, go back to waiting
+     */
+    int NoTrafficThreshold = 10;
 
     /*
      * The source port of the last packet received
@@ -186,16 +198,48 @@ public class UDPReceiver implements Runnable {
     public DatagramPacket getPacket() {
         caller = Thread.currentThread();
         
+        if (! running) {
+            System.err.println("UDPReceiver: getPacket() not running");
+        }
+        
+
         if (eof && packetQueue.size() == 0) {
             return null;
         } else {
             try {
                 // get the next packet off the queue
-                DatagramPacket packet = packetQueue.take();
+                DatagramPacket packet;
+
+                if (length == -1) {
+                    // start up / no traffic condition
+                    // we just sit and wait until something arrives
+                    packet = packetQueue.take();
+                    noPacketCount = 0;
+                } else {
+                    // traffic flowing condition
+                    // we wait 200ms before we decide there's no traffic
+                    packet = packetQueue.poll(200L, TimeUnit.MILLISECONDS);
+
+                    if (packet == null) {
+                        // poll timed out
+                        noPacketCount++;
+
+                        // Did we get to the NoTrafficThreshold
+                        if (noPacketCount == NoTrafficThreshold) {
+                            if (Verbose.level >= 2) {
+                                System.err.println("UDPReceiver: no packet after 200ms " + NoTrafficThreshold + " times");
+                            }
+
+                            // reset length for start up / no traffic condition
+                            length = -1;
+                        }
+                    }
+                }
 
                 return packet;
             
             } catch (InterruptedException ie) {
+                //System.err.println("UDPReceiver: interrupted");
                 return null;
             }
         }

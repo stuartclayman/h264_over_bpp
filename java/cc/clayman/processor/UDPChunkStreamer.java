@@ -14,7 +14,7 @@ import cc.clayman.net.BPPDepacketizer;
 import cc.clayman.net.UDPReceiver;
 
 /*
-
+ * The reads packets from a UDPReceiver and returns ChunkInfo objects.
  */
 public class UDPChunkStreamer implements ChunkStreamer {
     // The UDP receiver
@@ -47,16 +47,20 @@ public class UDPChunkStreamer implements ChunkStreamer {
      * Returns the next ChunkInfo 
      */
     public ChunkInfo next() {
-        packet = receiver.getPacket();
-
-        if (packet == null) {
-            // the receiver has gone away
+        if (receiver.isEOF()) {
             return null;
-            
         } else {
-            // convert the packet into a ChunkInfo
-            ChunkInfo chunk = depacketizer.convert(packet);
-            return chunk;
+            packet = receiver.getPacket();
+
+            if (packet == null) {
+                // the receiver has gone away
+                return null;
+            
+            } else {
+                // convert the packet into a ChunkInfo
+                ChunkInfo chunk = depacketizer.convert(packet);
+                return chunk;
+            }
         }
     }
 
