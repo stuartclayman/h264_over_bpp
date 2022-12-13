@@ -103,6 +103,8 @@ public class BufferingUDPChunkStreamer extends UDPChunkStreamer implements Chunk
                         // empty list - so add it
                         list.add(chunk);
                     } else {
+                        boolean added = false;
+                        
                         // check if the chunk arrived out of order
                         for (int i=0; i < list.size(); i++) {
                             ChunkInfo inList = list.get(i);
@@ -110,17 +112,20 @@ public class BufferingUDPChunkStreamer extends UDPChunkStreamer implements Chunk
                             if (chunk.getSequenceNumber() < inList.getSequenceNumber()) {
                                 // out of order
                                 list.add(i, chunk);
+                                added = true;
 
                                 if (Verbose.level >= 2) {
                                     System.err.println("BufferingUDPChunkStreamer next: chunk " + chunk.getSequenceNumber() + " out of order");
                                 }
-                                                
-                            
+
+                                break;
                             }
                         }
 
                         // we got to the end of the existing one
-                        list.add(chunk);
+                        if (!added) {
+                            list.add(chunk);
+                        }
                     }
                 }
             }
