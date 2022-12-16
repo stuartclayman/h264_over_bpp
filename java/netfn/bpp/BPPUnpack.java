@@ -1,6 +1,7 @@
 package netfn.bpp;
 
 import java.net.DatagramPacket;
+import cc.clayman.net.IP;
 import cc.clayman.bpp.BPP;
 import cc.clayman.h264.NALType;
 import cc.clayman.util.ANSI;
@@ -102,6 +103,11 @@ public class BPPUnpack {
         recvThisSec += packetLength;
 
         int idealSendThisSec = (int) (availableBandwidth * secondPart);
+
+        if (idealSendThisSec < IP.BASIC_PACKET_SIZE) {
+            idealSendThisSec = IP.BASIC_PACKET_SIZE;
+        }
+        
         int behind = idealSendThisSec - sentThisSec;
 
         if (Verbose.level >= 2) {
