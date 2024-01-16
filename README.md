@@ -8,7 +8,7 @@ save.
 These programs can be used with an external virtualisation platform
 which can enact BPP behaviours to drop chunks under certain network conditions.  
 
-The provided instance is the BPP Forwarder [included with this software](netfn/README.md)
+The provided instance is the BPP Forwarder [included with this software](java/netfn/README.md)
 
 An alternative is: [VLSP](https://github.com/stuartclayman/VLSP) the
 *Very Lightweight Network & Service Platform*, which provides a set of Virtual Routers and Virtual Network Connections to create a virtualized networking and compute test environment.
