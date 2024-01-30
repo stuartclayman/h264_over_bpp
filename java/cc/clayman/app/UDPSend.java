@@ -10,10 +10,11 @@ import cc.clayman.chunk.*;
 import cc.clayman.processor.*;
 import cc.clayman.net.*;
 import cc.clayman.terminal.ChunkDisplay;
+import cc.clayman.terminal.SVCChunkDisplay;
 import cc.clayman.util.Verbose;
 
 // A UDP sender
-// With a Raw packetizer
+// With a Simple packetizer
 public class UDPSend {
 
     // Default is STDIN
@@ -132,7 +133,7 @@ public class UDPSend {
         SVCChunkInfo chunk = null;
         
         // Configure ChunkPacketizer
-        packetizer = new RawPacketizer(packetSize);
+        packetizer = new SimpleSVCPacketizer(packetSize);
 
         // Open a H264InputStream
         H264InputStream str = null;
@@ -220,7 +221,7 @@ public class UDPSend {
 
         // used up 18 chars
 
-        ChunkDisplay displayer = new ChunkDisplay(columns - 22, payloadSize);
+        ChunkDisplay displayer = new SVCChunkDisplay(columns - 22, payloadSize);
         displayer.display(chunk);
         
         System.out.println(" ");

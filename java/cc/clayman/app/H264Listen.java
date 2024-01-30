@@ -169,8 +169,9 @@ public class H264Listen {
             }
         }
                   
-        // and the ChunkStreamer
-        streamer = new BufferingUDPChunkStreamer(receiver);
+        // and the ChunkStreamer using a BPPSVCDepacketizer
+        // as we know BPP SVC packets are coming
+        streamer = new BufferingUDPChunkStreamer(receiver, new BPPSVCDepacketizer());
         // and the MultiNALRebuilder
         rebuilder = new MultiNALRebuilder(streamer, NO_OF_VCLS);
         rebuilder.start();

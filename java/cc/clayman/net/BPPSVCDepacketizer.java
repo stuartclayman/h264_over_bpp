@@ -1,16 +1,17 @@
-// BPPDeacketizer.java
+// BPPSVCDeacketizer.java
 // Author: Stuart Clayman
 // Email: s.clayman@ucl.ac.uk
-// Date: April 2023
+// Date: Sept 2021
 
 package cc.clayman.net;
 
 import java.net.DatagramPacket;
 import java.nio.ByteBuffer;
 
-import cc.clayman.chunk.ChunkInfo;
-import cc.clayman.chunk.MultiChunkInfo;
+import cc.clayman.chunk.SVCChunkInfo;
 import cc.clayman.chunk.ChunkContent;
+import cc.clayman.chunk.SVCChunks;
+import cc.clayman.h264.NALType;
 import cc.clayman.net.IP;
 import cc.clayman.bpp.BPP;
 import cc.clayman.util.Verbose;
@@ -18,7 +19,7 @@ import cc.clayman.util.Verbose;
 /**
  * Take a DatagramPacket  and converts them into a ChunkInfo object.
  */
-public class BPPDepacketizer implements ChunkDepacketizer {
+public class BPPSVCDepacketizer implements ChunkDepacketizer {
 
     
     DatagramPacket packet;
@@ -32,11 +33,14 @@ public class BPPDepacketizer implements ChunkDepacketizer {
     int sequence = 0;
 
 
+    int nalNumber = 0;
+    int lastNalNo = 0;
+    int nalBaseCount = 0;
     int fragmentNumber = 0;
     int lastFragmentNumber = 0;
     int fragmentBaseCount = 0;
     
-    public BPPDepacketizer() {
+    public BPPSVCDepacketizer() {
         chunkCount = 1;
     }
 
@@ -53,7 +57,7 @@ public class BPPDepacketizer implements ChunkDepacketizer {
      * Convert a DatagramPacket into a ChunkInfo 
      * @throws UnsupportedOperationException if it can't work out what to do
      */
-    public ChunkInfo convert(DatagramPacket packet) throws UnsupportedOperationException {
+    public SVCChunkInfo convert(DatagramPacket packet) throws UnsupportedOperationException {
         this.packet = packet;
         count++;
         
@@ -115,14 +119,18 @@ public class BPPDepacketizer implements ChunkDepacketizer {
         boolean [] lastFragment = new boolean[chunkCount];
         boolean [] isDropped = new boolean[chunkCount];
         
+        int nalCount = 0;
+        int nalNo = 0;
+        NALType nalType = null;
+
         for (int c=0; c<chunkCount; c++) {
         
             // Find per-chunk Metadata Block - 48 bits / 6 bytes 
-            //  -  22 bits (OFFi [5 bits (Chunk Offset) + 12 bits (Source Frame No) + 5 bits (Frag No)])
+            //  -  22 bits (OFFi [5 bits (NAL Count) + 12 bits (NAL No) + 5 bits (Frag No)])
             //   + 14 bits (CSi) + 4 bits (SIGi) + 1 bit (OFi) + 1 bit (FFi)
-            //   +  6 bits (PAD)
+            //   +  1 bit (VCL/NONVCL) + 5 bits (PAD)
             //
-            // Source Frame No is limited to 12 bits - max 4095 - so can wrap
+            // NAL No is limited to 12 bits - max 4095 - so can wrap
             // Frag No is limited to 5 bits - max 31 - so can wrap
                 
             int offI = 0;
@@ -163,8 +171,32 @@ public class BPPDepacketizer implements ChunkDepacketizer {
             bufPos += BPP.METADATA_BLOCK_SIZE;
             
             // now unpack values
+            nalCount = (offI >> 17) & 0x0000001F;
+            nalNo = (offI >> 5) & 0x00000FFF;
             fragment = (offI & 0x0000001F);
 
+            // check if nalNo has wrapped
+            // 4095 = 12 bits of 1s
+            // only do on first chunk
+            int lastNalNoMod = lastNalNo % 4096;
+            if (c==0 && nalNo < lastNalNoMod) {
+                // sometimes packets get reordered, so we need to check
+                // if the values are similar
+                if (lastNalNoMod > 4090 && nalNo < 5) {
+                    nalBaseCount += 4096;
+                }
+            }
+
+            // process read nalNo
+            nalNumber = nalBaseCount + nalNo;
+
+            // check if new nalNo
+            if (c == 0 && nalNumber > lastNalNo) {
+                lastNalNo = nalNumber;
+                // reset fragmentBaseCount
+                fragmentBaseCount = 0;
+                lastFragmentNumber = 0;
+            }
 
             // check if fragment has wrapped
             // 31 = 5 bits of 1s
@@ -177,11 +209,17 @@ public class BPPDepacketizer implements ChunkDepacketizer {
             fragmentNumber = fragmentBaseCount + fragment;
             lastFragmentNumber = fragmentNumber;
 
+            if (type == 0 || type == 1)  {
+                nalType = (type == 0 ? NALType.VCL : NALType.NONVCL);
+            } else {
+                throw new Error("Invalid NALType number " + type);
+            }
+            
             
             if (Verbose.level >= 2) {
-                System.err.printf("  %-3dOFFi: fragment: %d \n", (c+1), fragment);
+                System.err.printf("  %-3dOFFi: nalNo: %d nalCount: %d fragment: %d \n", (c+1), nalNumber, nalCount, fragment);
                 System.err.printf("     CSi: contentSize: %d  SIGi:  %d\n", csI, sigI);
-                System.err.printf("     OFi: %s FFi: %s  \n", ofI, ffI);
+                System.err.printf("     OFi: %s FFi: %s  NAL: %s\n", ofI, ffI, nalType);
             }
 
             // save the contentSize
@@ -197,7 +235,7 @@ public class BPPDepacketizer implements ChunkDepacketizer {
         
         // Create a ChunkInfo
         // Pass in array of sizes
-        ChunkInfo chunk = new MultiChunkInfo(contentSizes);
+        SVCChunkInfo chunk = new SVCChunks(contentSizes);
         chunk.setSequenceNumber(sequence);
 
         // bufPos now should be at first content
@@ -205,6 +243,11 @@ public class BPPDepacketizer implements ChunkDepacketizer {
         for (int c=0; c<chunkCount; c++) {
         
 
+            chunk.setNALType(nalType);
+            chunk.setNALNumber(nalNumber);
+            chunk.setNALCount(nalCount);
+
+                    
             // Wrap the bytes of the packet
             ByteBuffer buf = ByteBuffer.wrap(packet.getData(), bufPos, contentSizes[c]);
 

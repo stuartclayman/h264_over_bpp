@@ -30,10 +30,22 @@ public class UDPChunkStreamer implements ChunkStreamer {
     /**
      * A UDPChunkStreamer takes a UDPReceiver and returns a ChunkInfo
      * on each call
+     * @param receiver a UDPReceiver
      */
     public UDPChunkStreamer(UDPReceiver receiver) {
         this.receiver = receiver;
         depacketizer = new BPPDepacketizer();
+    }
+
+    /**
+     * A UDPChunkStreamer takes a UDPReceiver and returns a ChunkInfo
+     * on each call
+     * @param receiver a UDPReceiver
+     * @param depacketizer a ChunkDepacketizer
+     */
+    public UDPChunkStreamer(UDPReceiver receiver, ChunkDepacketizer depacketizer) {
+        this.receiver = receiver;
+        this.depacketizer = depacketizer;
     }
 
     /**

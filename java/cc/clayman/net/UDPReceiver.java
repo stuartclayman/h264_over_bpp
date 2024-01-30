@@ -196,12 +196,72 @@ public class UDPReceiver implements Runnable {
      * Get a DatagramPacket from the receiver
      */
     public DatagramPacket getPacket() {
+        DatagramPacket packet = null;
+
         caller = Thread.currentThread();
         
+        // called getPacket() when not running
+        // so nothing to do
         if (! running) {
             System.err.println("UDPReceiver: getPacket() not running");
+            return null;
         }
         
+
+        // If EOF and queue is empty
+        // so nothing to do
+        if (eof && packetQueue.size() == 0) {
+            return null;
+        } else {
+            // check if we get a packet
+
+            // Loop around getPacketInner() a number of times
+            // After NoTrafficThreshold attempts we decide there is nothing
+            while (true) {
+                // call getPacketInner()
+                packet = getPacketInner();
+                    
+                if (packet == null) {
+                    // poll timed out
+                    noPacketCount++;
+
+                    // Did we get to the NoTrafficThreshold
+                    if (noPacketCount == NoTrafficThreshold) {
+                        if (Verbose.level >= 2) {
+                            System.err.println("UDPReceiver: no packet after 200ms " + noPacketCount + " times");
+                        }
+
+                        // reset length for start up / no traffic condition
+                        length = -1;
+
+                        return null;
+                    } else {
+                        // We didn;t get to NoTrafficThreshold
+                        // so we try again
+                        if (Verbose.level >= 2) {
+                            System.err.println("UDPReceiver: packet = null -- no packet after 200ms " + noPacketCount + " times");
+                        }
+                
+                        continue;
+                    }
+                } else {
+                    // we got a packet
+                    noPacketCount = 0;
+
+                    //System.err.println("UDPReceiver: packet recvd -- no packet after 200ms " + noPacketCount + " times");
+                    return packet;
+
+                }
+            }
+
+        }
+    }
+
+    
+    /**
+     * Get a DatagramPacket from the receiver
+     */
+    protected DatagramPacket getPacketInner() {
 
         if (eof && packetQueue.size() == 0) {
             return null;
@@ -215,31 +275,20 @@ public class UDPReceiver implements Runnable {
                     // we just sit and wait until something arrives
                     packet = packetQueue.take();
                     noPacketCount = 0;
+                    
                 } else {
                     // traffic flowing condition
                     // we wait 200ms before we decide there's no traffic
                     packet = packetQueue.poll(200L, TimeUnit.MILLISECONDS);
 
-                    if (packet == null) {
-                        // poll timed out
-                        noPacketCount++;
-
-                        // Did we get to the NoTrafficThreshold
-                        if (noPacketCount == NoTrafficThreshold) {
-                            if (Verbose.level >= 2) {
-                                System.err.println("UDPReceiver: no packet after 200ms " + NoTrafficThreshold + " times");
-                            }
-
-                            // reset length for start up / no traffic condition
-                            length = -1;
-                        }
-                    }
                 }
 
                 return packet;
-            
+
             } catch (InterruptedException ie) {
-                //System.err.println("UDPReceiver: interrupted");
+                if (Verbose.level >= 0) {
+                    System.err.println("UDPReceiver: InterruptedException " + ie);
+                }
                 return null;
             }
         }
@@ -276,8 +325,14 @@ public class UDPReceiver implements Runnable {
             } catch (InterruptedException ie) {
                 if (Verbose.level >= 2) {
                     System.err.println("InterruptedException " + ie);
+                    //ie.printStackTrace();
                 }
             } catch (EOFException ee) {
+                if (Verbose.level >= 2) {
+                    System.err.println("InterruptedException " + ee);
+                    //ee.printStackTrace();
+                }
+                
                 eof = true;
                 running = false;
             } catch (IOException ioe) {

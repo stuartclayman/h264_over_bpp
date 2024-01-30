@@ -114,7 +114,7 @@ public class TestNetR3 {
             timer.schedule(timerTask, 1000, 1000);
         }
 
-        ChunkDepacketizer depacketizer = new RawDepacketizer();
+        ChunkDepacketizer depacketizer = new SimpleSVCDepacketizer();
 
         int lastSeen = 0;
 
@@ -228,9 +228,9 @@ public class TestNetR3 {
 
         int packetLen = packet.getLength();            // no of bytes
 
-        int payloadLen = packet.getLength() - RawPacketizer.HEADER_SIZE;      // no of payload bytes
+        int payloadLen = packet.getLength() - SimpleSVCDepacketizer.HEADER_SIZE;      // no of payload bytes
 
-        for (int b=RawPacketizer.HEADER_SIZE; b<packetLen; b++) {
+        for (int b=SimpleSVCDepacketizer.HEADER_SIZE; b<packetLen; b++) {
             outputStream.write(packetBytes[b]);
         }
     }

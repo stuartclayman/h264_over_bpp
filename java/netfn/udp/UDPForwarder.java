@@ -152,6 +152,8 @@ public class UDPForwarder implements ManagementListener {
 
         setBandwidth(bb);
 
+        System.out.printf("BW:  %9d%10d\n", count, bandwidthBits);
+
         // Now inform the UDPFn about the new bandwidth
         udpFn.setBandwidth(bandwidthBits);
 

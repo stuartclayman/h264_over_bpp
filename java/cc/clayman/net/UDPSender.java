@@ -184,11 +184,14 @@ public class UDPSender implements Runnable {
                 
             } catch (InterruptedException ie) {
                 if (Verbose.level >= 2) {
-                    System.err.println("InterruptedException " + ie);
+                    System.err.println("UDPSender: InterruptedException " + ie);
+                    //System.err.println("UDPSender: queue length = " + packetQueue.size());
+                    //ie.printStackTrace();
                 }
             } catch (IOException ioe) {
                 if (Verbose.level >= 2) {
-                    System.err.println("IOException " + ioe);
+                    System.err.println("UDPSender: IOException " + ioe);
+                    //ioe.printStackTrace();
                 }
             }
         }

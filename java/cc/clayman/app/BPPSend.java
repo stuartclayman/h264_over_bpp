@@ -10,10 +10,13 @@ import cc.clayman.chunk.*;
 import cc.clayman.processor.MultiNALProcessor;
 import cc.clayman.net.*;
 import cc.clayman.terminal.ChunkDisplay;
+import cc.clayman.terminal.SVCChunkDisplay;
 import cc.clayman.util.Verbose;
 
-// Using the UDPSender
-// with a BPP packetizer
+/**
+ * BPPSend sends SVC video in BPP packets.
+ * Using the UDPSender with a BPPSVCpacketizer.
+ */
 public class BPPSend {
 
     // Default is STDIN
@@ -211,7 +214,7 @@ public class BPPSend {
         
         // Configure ChunkPacketizer
         // 1500 byte packets / 3 chunks
-        packetizer = new BPPPacketizer(packetSize, nalsPerFrame, videoKbps);
+        packetizer = new BPPSVCPacketizer(packetSize, nalsPerFrame);
 
         // Open a H264InputStream
         H264InputStream str = null;
@@ -374,7 +377,7 @@ public class BPPSend {
 
         // used up 18 chars
 
-        ChunkDisplay displayer = new ChunkDisplay(columns - 22, payloadSize);
+        ChunkDisplay displayer = new SVCChunkDisplay(columns - 22, payloadSize);
         displayer.display(chunk);
         
         System.out.println(" ");

@@ -1,4 +1,4 @@
-// RawDeacketizer.java
+// SimpleSVCDepacketizer.java
 // Author: Stuart Clayman
 // Email: s.clayman@ucl.ac.uk
 // Date: August 2021
@@ -17,19 +17,19 @@ import cc.clayman.net.IP;
 /**
  * Take a DatagramPacket  and converts them into a ChunkInfo object.
  */
-public class RawDepacketizer implements ChunkDepacketizer {
+public class SimpleSVCDepacketizer implements ChunkDepacketizer {
 
-    // The Raw header size
+    // The header size
     // Contains startNAL number, no of NALs in the Chunk, NAL type
     // 4 bytes: 24 bits / 3 bytes: NAL no,
     // 1 byte:  7 bits: no of NALs, 1 bit: type (0 VCL, 1 NONVCL)
 
-    public final static int HEADER_SIZE = RawPacketizer.HEADER_SIZE;
+    public final static int HEADER_SIZE = SimpleSVCPacketizer.HEADER_SIZE;
 
     // Each ChunkContent might have a sub header
     // 1 byte:  7 bits: fragment no, 1 bit: last fragment
 
-    public final static int CHUNK_HEADER_SIZE = RawPacketizer.CHUNK_HEADER_SIZE;
+    public final static int CHUNK_HEADER_SIZE = SimpleSVCPacketizer.CHUNK_HEADER_SIZE;
     
     DatagramPacket packet;
 
@@ -37,7 +37,7 @@ public class RawDepacketizer implements ChunkDepacketizer {
 
     int sequence = 0;
     
-    public RawDepacketizer() {
+    public SimpleSVCDepacketizer() {
     }
 
 

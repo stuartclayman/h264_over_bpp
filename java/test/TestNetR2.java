@@ -104,7 +104,7 @@ public class TestNetR2 {
             timer.schedule(timerTask, 1000, 1000);
         }
 
-        ChunkDepacketizer depacketizer = new RawDepacketizer();
+        ChunkDepacketizer depacketizer = new SimpleSVCDepacketizer();
 
         while ((packet = receiver.getPacket()) != null) {
             lastTime = System.currentTimeMillis();

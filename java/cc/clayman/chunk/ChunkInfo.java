@@ -7,8 +7,6 @@ package cc.clayman.chunk;
 
 import java.nio.ByteBuffer;
 
-import cc.clayman.h264.NALType;
-
 /*
  * An interface for Info about Chunks.
  */

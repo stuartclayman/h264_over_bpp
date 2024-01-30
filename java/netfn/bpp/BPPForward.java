@@ -1,5 +1,7 @@
 package netfn.bpp;
 
+import netfn.mgmt.*;
+
 import java.io.IOException;
 import java.net.InetAddress;
 
@@ -125,7 +127,7 @@ public class BPPForward {
             System.err.println("Forward to host: " + forwardHost);
             System.err.println("Forward to port: " + forwardPort);
             System.err.println("HTTP listen port: " + httpPort);
-            System.err.println("Columns: " + columns);
+            //System.err.println("Columns: " + columns);
             System.err.println("Bandwidth in bits: " + bandwidthBits);
             System.err.println("Packets per second: " + packetsPerSecond);
         }
@@ -145,7 +147,7 @@ public class BPPForward {
     }
 
     static void usage() {
-        System.err.println("BPPListen [-b bandwidth] [-p list_port] [-h forward_host] [-P forward_port] [-H http_port] [-c cols]");
+        System.err.println("BPPForward [-b bandwidth] [-p listen_port] [-h forward_host] [-P forward_port] [-H http_port]");
         System.exit(1);
     }
 

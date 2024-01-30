@@ -15,7 +15,6 @@ import cc.clayman.h264.NALType;
 import cc.clayman.chunk.ChunkInfo;
 import cc.clayman.chunk.SVCChunkInfo;
 import cc.clayman.chunk.ChunkContent;
-import cc.clayman.chunk.SingleChunkInfo;
 import cc.clayman.chunk.SVCChunks;
 import cc.clayman.net.IP;
 
@@ -259,7 +258,7 @@ public class SingleNALProcessor implements NALProcessor, Iterator {
      * Allocate a new Chunk Info
      */
     protected SVCChunkInfo allocateChunkInfo(int size) {
-        SVCChunkInfo chunk = new SVCChunks(1, size); // new SingleChunkInfo(size); // new BasicChunkInfo(size); //
+        SVCChunkInfo chunk = new SVCChunks(1, size);
         chunk.setNALType(currentNAL.getTypeClass());
 
         return chunk;

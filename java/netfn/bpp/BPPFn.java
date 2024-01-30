@@ -30,7 +30,8 @@ public class BPPFn  {
      * Process the recevied Datagram
      *
      * The callback for when a Datagram is received by an Intercepter.
-     * Return a Datagram to forward Datagram, Return null to throw it away.
+     * Return a Datagram to forward Datagram
+     * Return null to throw it away.
      */
     public DatagramPacket datagramProcess(DatagramPacket datagram) {
 

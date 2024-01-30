@@ -1,4 +1,4 @@
-// RawPacketizer.java
+// SimpleSVCPacketizer.java
 // Author: Stuart Clayman
 // Email: s.clayman@ucl.ac.uk
 // Date: August 2021
@@ -13,11 +13,12 @@ import cc.clayman.net.IP;
 import cc.clayman.util.Verbose;
 
 /**
- * Take SVCChunkInfo objects and converts them into a Raw packet.
+ * Take SVCChunkInfo objects and converts them into a  packet
+ * with a simple header.
  */
-public class RawPacketizer implements ChunkPacketizer {
+public class SimpleSVCPacketizer implements ChunkPacketizer {
 
-    // The Raw header size
+    // The header size
     // Contains startNAL number, no of NALs in the Chunk, NAL type
     // 4 bytes: 32 bits:  sequence no
     // 4 bytes: 24 bits / 3 bytes: NAL no,
@@ -35,15 +36,15 @@ public class RawPacketizer implements ChunkPacketizer {
     final int headerByteCount;
 
     
-    public RawPacketizer() {
+    public SimpleSVCPacketizer() {
         packetSize = IP.BASIC_PACKET_SIZE;
         headerByteCount = HEADER_SIZE;
     }
 
     /**
-     * A RawPacketizer with a packet size
+     * A SimpleSVCPacketizer with a packet size
      */
-    public RawPacketizer(int size) {
+    public SimpleSVCPacketizer(int size) {
         packetSize = size;
         headerByteCount = HEADER_SIZE;
     }

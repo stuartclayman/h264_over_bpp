@@ -9,6 +9,7 @@ import cc.clayman.h264.*;
 import cc.clayman.chunk.*;
 import cc.clayman.processor.MultiNALProcessor;
 import cc.clayman.net.*;
+import cc.clayman.terminal.ChunkDisplay;
 
 // A first test of the UDPSender
 // With a BPP packetizer
@@ -19,10 +20,12 @@ public class TestNetB1 {
     static int packetsPerSecond = 0;
     static ChunkPacketizer packetizer = null;
     static ChunkSizeCalculator calculator = null;
+    static int udpPort = 6799;
+    static String filename = null;
 
     public static void main(String[] args) {
         if (args.length == 1) {
-            String filename = args[0];
+            filename = args[0];
             
             try {
                 processFile(filename);
@@ -38,24 +41,32 @@ public class TestNetB1 {
                 String arg0 = args[argc];
 
             
-                if (arg0.equals("-e")) {
-                    // Use Even chunk packing strategy
+                if (arg0.equals("-f")) {
+                    // Input filename
                     argc++;
-                    calculator = new EvenSplit();
-
-                } else if (arg0.equals("-d")) {
-                    // Use Dynamic split chunk packing strategy
-                    argc++;
-                    calculator = new DynamicSplit();
-
-                } else if (arg0.equals("-i")) {
-                    // Use In order chunk  strategy
-                    argc++;
-                    calculator = new InOrder();
+                    filename = args[argc];
 
                 } else if (arg0.equals("-p")) {
-                    // Use In order chunk and full packing strategy
+                    // Port
                     argc++;
+
+                    String val = args[argc];
+                    udpPort = Integer.parseInt(val);
+
+                } else if (arg0.equals("-Pe")) {
+                    // Use Even chunk packing strategy
+                    calculator = new EvenSplit();
+
+                } else if (arg0.equals("-Pd")) {
+                    // Use Dynamic split chunk packing strategy
+                    calculator = new DynamicSplit();
+
+                } else if (arg0.equals("-Pi")) {
+                    // Use In order chunk  strategy
+                    calculator = new InOrder();
+
+                } else if (arg0.equals("-Pf")) {
+                    // Use In order chunk and full packing strategy
                     calculator = new InOrderPacked();
 
                 } else if (arg0.equals("-s")) {
@@ -78,9 +89,9 @@ public class TestNetB1 {
                 } else {
                     usage();
                 }
+
+                argc++;
             }
-            
-            String filename = args[argc];
             
             try {
                 processFile(filename);
@@ -93,20 +104,20 @@ public class TestNetB1 {
     }
 
     static void usage() {
-        System.err.println("TestNetB1 [-e|-d|-i|-p|-s sleep|-r rate] filename");
+        System.err.println("TestNetB1 [-Pe|-Pd|-Pi|-Pf|-s sleep|-r rate|-p port] filename");
         System.exit(1);
     }
 
 
     protected static void processFile(String filename) throws IOException {
         // Setup UDP Sender
-        sender = new UDPSender("localhost", 6799);
+        sender = new UDPSender("localhost", udpPort);
         sender.start();
         
 
         int count = 0;
         int total = 0;
-        SVCChunkInfo chunk = null;
+        ChunkInfo chunk = null;
         
         // Configure ChunkPacketizer
         // 1500 byte packets / 3 chunks
@@ -129,8 +140,8 @@ public class TestNetB1 {
 
             total += chunk.offset();
 
-            //printChunk(chunk, count, total);
-            TestMNP2.printChunk(chunk, count, total, nalProcessor.getPayloadSize());
+            printChunk(chunk, count, total,  nalProcessor.getPayloadSize());
+            //TestMNP2.printChunk(chunk, count, total, nalProcessor.getPayloadSize());
 
             
             System.err.printf("%-6d", count);
@@ -153,15 +164,32 @@ public class TestNetB1 {
         sender.stop();
 
     }
-    
-    protected static void printChunk(SVCChunkInfo chunk, int count, int total) {
+
+    protected static void printChunk(ChunkInfo chunk, int count, int total, int payloadSize) {
+        
+        // try and find the no of columns from the Environment
+        int columns = 80;
+        String columnsEnv = System.getenv("COLUMNS");
+
+        if (columnsEnv != null) {
+            int columnVal = Integer.parseInt(columnsEnv);
+
+            columns = columnVal;
+        }
 
         System.out.printf("%-8d", count);               // N
-        System.out.printf("%-10s", chunk.getNALType());               // type
+        //System.out.printf("%-10s", chunk.getNALType());               // type
         System.out.printf(" %-5d", chunk.offset());         // no of bytes
         System.out.printf(" %-10d", total);             // total bytes
 
-        System.out.println();
+        // used up 18 chars
+
+        ChunkDisplay displayer = new ChunkDisplay(columns - 24, 1500);
+        displayer.display(chunk);
+        
+        System.out.println("");
+                    
     }
+     
     
 }

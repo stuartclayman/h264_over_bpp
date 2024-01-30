@@ -8,6 +8,7 @@ import java.util.List;
 import cc.clayman.h264.*;
 import cc.clayman.chunk.*;
 import cc.clayman.terminal.ChunkDisplay;
+import cc.clayman.terminal.SVCChunkDisplay;
 import cc.clayman.processor.MultiNALProcessor;
 
 // A first test of the MultiNALProcessor and ChunkDisplay to terminal
@@ -143,7 +144,7 @@ public class TestMNP2 {
 
         // used up 18 chars
 
-        ChunkDisplay displayer = new ChunkDisplay(columns - 22, payloadSize);
+        ChunkDisplay displayer = new SVCChunkDisplay(columns - 22, payloadSize);
         displayer.display(chunk);
         
         System.out.println(" ");

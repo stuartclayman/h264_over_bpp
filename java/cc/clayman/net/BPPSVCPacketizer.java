@@ -1,21 +1,22 @@
-// BPPPacketizer.java
+// BPPSVCPacketizer.java
 // Author: Stuart Clayman
 // Email: s.clayman@ucl.ac.uk
-// Date: April 2023
+// Date: August 2021
 
 package cc.clayman.net;
 
 import cc.clayman.chunk.ChunkInfo;
-import cc.clayman.chunk.MultiChunkInfo;
+import cc.clayman.chunk.SVCChunkInfo;
 import cc.clayman.chunk.ChunkContent;
+import cc.clayman.h264.NALType;
 import cc.clayman.net.IP;
 import cc.clayman.bpp.BPP;
 import cc.clayman.util.Verbose;
 
 /**
- * Take ChunkInfo objects and converts them into a BPP packet.
+ * Take SVCChunkInfo objects and converts them into a BPP packet.
  */
-public class BPPPacketizer implements ChunkPacketizer {
+public class BPPSVCPacketizer implements ChunkPacketizer {
     
     final int packetSize;
 
@@ -26,10 +27,11 @@ public class BPPPacketizer implements ChunkPacketizer {
     int count = 0;
 
     /**
-     * Create a BPPPacketizer given a chunkCount for each packet.
+     * Create a BPPSVCPacketizer given a chunkCount for each packet,
+     * which is equal to the no of NALs per frame,
      * The packet size is set to 1500 by default.
      */
-    public BPPPacketizer(int chunkCount) {
+    public BPPSVCPacketizer(int chunkCount) {
         packetSize = IP.BASIC_PACKET_SIZE;
         this.chunkCount = chunkCount;
 
@@ -38,10 +40,11 @@ public class BPPPacketizer implements ChunkPacketizer {
     }
 
     /**
-     * Create a BPPPacketizer given a chunkCount for each packet,
+     * Create a BPPSVCPacketizer given a chunkCount for each packet,
+     * which is equal to the no of NALs per frame,
      * and with a packet size.
      */
-    public BPPPacketizer(int size, int chunkCount) {
+    public BPPSVCPacketizer(int size, int chunkCount) {
         packetSize = size;
         this.chunkCount = chunkCount;
 
@@ -60,10 +63,11 @@ public class BPPPacketizer implements ChunkPacketizer {
     }
     
     /**
-     * Convert a ChunkInfo into byte[]
+     * Convert a SVCChunkInfo into byte[]
      * @throws UnsupportedOperationException if the Chunk is too big to fit in a packet
      */
-    public byte[] convert(int sequence, int condition, int threshold, ChunkInfo chunk) throws UnsupportedOperationException {
+    public byte[] convert(int sequence, int condition, int threshold, ChunkInfo svcChunk) throws UnsupportedOperationException {
+        SVCChunkInfo chunk = (SVCChunkInfo)svcChunk;
         
         count++;
 
@@ -86,6 +90,15 @@ public class BPPPacketizer implements ChunkPacketizer {
 
             byte[] packetBytes = new byte[sizeNeeded + headerByteCount];
 
+
+            // Get the NAL number
+            int nalNo = chunk.getNALNumber();
+
+            // Get the NAL count
+            int nalCount = chunk.getNALCount();
+
+            // Get NAL type
+            NALType type = chunk.getNALType();
 
             // Now build the 32 bit BPP Header + 24 bit Command Block
 
@@ -116,6 +129,9 @@ public class BPPPacketizer implements ChunkPacketizer {
             packetBytes[5] = (byte)(((commandBlock & 0x0000FF00) >> 8) & 0xFF);
             packetBytes[6] = (byte)(((commandBlock & 0x000000FF) >> 0) & 0xFF);
 
+            if (Verbose.level >= 2) {
+                System.err.println("Chunk data: nalNo = " + nalNo + " nalCount = " + nalCount);
+            }
 
             // Add Sequence no
             packetBytes[7] = (byte)(((sequence & 0xFF000000) >> 24) & 0xFF);
@@ -141,20 +157,20 @@ public class BPPPacketizer implements ChunkPacketizer {
                 boolean isLastFragment = content[c].isLastFragment();
 
                 // Add per-chunk Metadata Block - 48 bits / 6 bytes 
-                //  -  22 bits (OFFi [5 bits (Chunk Offset) + 12 bits (Source Frame No) + 5 bits (Frag No)])
+                //  -  22 bits (OFFi [5 bits (NAL Count) + 12 bits (NAL No) + 5 bits (Frag No)])
                 //   + 14 bits (CSi) + 4 bits (SIGi) + 1 bit (OFi) + 1 bit (FFi)
-                //   + 6 bits (PAD)
+                //   +  1 bit (VCL/NONVCL) + 5 bits (PAD)
                 //
-                // Source Frame No is limited to 12 bits - max 4095 - so can wrap
+                // NAL No is limited to 12 bits - max 4095 - so can wrap
                 // Frag No is limited to 5 bits - max 31 - so can wrap
                 
                 int offI = 0;
                 int csI = 0;
-                // significance probably calculated on-the-fly, from the content
+                // significance probably calculated on-the-fly, from the NAL
                 int sigI = content[c].getSignificanceValue();
                 
             
-                offI = (0 | ((fragment & 0x0000001F) << 0));
+                offI = ((nalCount & 0x0000001F) << 17) | ((nalNo & 0x00000FFF) << 5) | ((fragment & 0x0000001F) << 0);
 
                 //System.err.printf(" offI = %d  0x%5X \n", offI, offI);
 
@@ -186,6 +202,8 @@ public class BPPPacketizer implements ChunkPacketizer {
                 packetBytes[bufPos+5] = (byte)(((ofI ? 1 : 0)<< 7) & 0xFF);
                 // need 1 bit for FFi
                 packetBytes[bufPos+5] |= (byte)(((isLastFragment ? 1 : 0) << 6) & 0xFF);
+                // need 1 bit for VCL/NONVCL
+                packetBytes[bufPos+5] |= (byte)((type.getValue() & 0x01) << 5);
 
                 // need 5 bits of PAD
 
@@ -194,9 +212,9 @@ public class BPPPacketizer implements ChunkPacketizer {
 
                 
                 if (Verbose.level >= 2) {
-                    System.err.printf("  %-3dOFFi:  fragment: %d \n", (c+1), fragment);
+                    System.err.printf("  %-3dOFFi: nalNo: %d nalCount: %d fragment: %d \n", (c+1), nalNo, nalCount, fragment);
                     System.err.printf("     CSi: contentSize: %d  SIGi:  %d\n", csI, sigI);
-                    System.err.printf("     OFi: %s FFi: %s  \n", ofI, isLastFragment);
+                    System.err.printf("     OFi: %s FFi: %s  NAL: %s\n", ofI, isLastFragment, type);
                 }
 
             }

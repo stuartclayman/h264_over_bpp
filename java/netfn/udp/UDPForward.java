@@ -127,7 +127,7 @@ public class UDPForward {
             System.err.println("Forward to host: " + forwardHost);
             System.err.println("Forward to port: " + forwardPort);
             System.err.println("HTTP listen port: " + httpPort);
-            System.err.println("Columns: " + columns);
+            //System.err.println("Columns: " + columns);
             System.err.println("Bandwidth in bits: " + bandwidthBits);
             System.err.println("Packets per second: " + packetsPerSecond);
         }
@@ -147,7 +147,7 @@ public class UDPForward {
     }
 
     static void usage() {
-        System.err.println("UDPForward [-b bandwidth] [-p listen_port] [-h forward_host] [-P forward_port] [-H http_port] [-c cols]");
+        System.err.println("UDPForward [-b bandwidth] [-p listen_port] [-h forward_host] [-P forward_port] [-H http_port]");
         System.exit(1);
     }
 

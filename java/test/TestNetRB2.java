@@ -60,8 +60,9 @@ public class TestNetRB2 {
     protected static void processTraffic() throws IOException {
         // Setup UDP Receiver
         receiver = new UDPReceiver(udpPort);
-        // and the ChunkStreamer
-        streamer = new UDPChunkStreamer(receiver);
+        // and the ChunkStreamer using a BPPSVCDepacketizer
+        // as we know BPP SVC packets are coming
+        streamer = new UDPChunkStreamer(receiver, new BPPSVCDepacketizer());
         streamer.start();
 
 

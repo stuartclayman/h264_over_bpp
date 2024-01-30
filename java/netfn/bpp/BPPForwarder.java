@@ -14,6 +14,8 @@ import cc.clayman.chunk.*;
 import cc.clayman.net.*;
 import cc.clayman.util.Verbose;
 
+import netfn.mgmt.*;
+
 // Collect packets with UDPReceiver
 // Forward packets with UDPSender
 // Patch up DatagramPacket address before forwarding
@@ -55,6 +57,9 @@ public class BPPForwarder implements ManagementListener {
         this.forwardPort = forwardPort;
         setBandwidth(bandwidth);
         setPacketsPerSecond(packetsPerSecond);
+
+        System.out.printf("BW:  %9d%10d\n", count, bandwidthBits);
+
     }
 
     protected void processTraffic() throws IOException {
@@ -82,7 +87,7 @@ public class BPPForwarder implements ManagementListener {
             DatagramPacket packet = receiver.getPacket();
 
             if (packet == null) {
-                // the receiver has gone away
+                // the receiver has nothing to pass on
                 break;
             } else {
                 count++;
@@ -109,21 +114,26 @@ public class BPPForwarder implements ManagementListener {
 
         DatagramPacket newVal = bppFn.datagramProcess(packet);
 
-        int newLength = newVal.getLength();
-        totalOut += newLength;
-
-        if (length == newLength) {
-            // the packet is not changed
-            System.out.printf("OUT:  %8d%6d%10d\n", count, newLength, totalOut);
+        if (newVal == null) {
+            // nothing to send
         } else {
-            // the packet has chunks removed
-            System.out.printf("OUT*: %8d%6d%10d\n", count, newLength, totalOut);
-        }
+            // send packet
+            int newLength = newVal.getLength();
+            totalOut += newLength;
+
+            if (length == newLength) {
+                // the packet is not changed
+                System.out.printf("OUT:  %8d%6d%10d\n", count, newLength, totalOut);
+            } else {
+                // the packet has chunks removed
+                System.out.printf("OUT*: %8d%6d%10d\n", count, newLength, totalOut);
+            }
         
-        sender.sendPayload(newVal);
-                    
+            sender.sendPayload(newVal);
+        }
     }
 
+    
     // set the bandwidthBits 
     // convert float 0.8 Mbps -> 838860 bits
     public void setBandwidth(float bb) {
@@ -142,9 +152,13 @@ public class BPPForwarder implements ManagementListener {
     // Adjust the bandwidth
     // Returns the old bandwidth
     public int adjustBandwidth(float bb) {
+        // Save old bandwidthBits
         int oldBW = bandwidthBits;
 
+        // calculate new bandwidthBits
         setBandwidth(bb);
+
+        System.out.printf("BW:  %9d%10d\n", count, bandwidthBits);
 
         // Now inform the BPPFn about the new bandwidth
         bppFn.setBandwidth(bandwidthBits);

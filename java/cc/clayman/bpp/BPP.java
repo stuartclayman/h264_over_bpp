@@ -23,7 +23,7 @@ package cc.clayman.bpp;
  *    + 5 bits (PAD)
  
     +------------------+--------------------+--------------------+-----------------+
-    | BPP Block Header (32 bits)                                                   *
+    | BPP Block Header (32 bits)            | ChunkCount(5)| P(3)|                 *
     +------------------+--------------------+--------------------+-----------------+
     | Command (5) |  Condition (8) | Threshold (8)   |  PAD (3)  * SeqNo (8)       *
     +------------------+--------------------+--------------------+-----------------+
@@ -38,7 +38,7 @@ package cc.clayman.bpp;
   OFi (1)  FFi (1)    VCL(1)
 
 
-// Chunk count is written in the Metadata offset field. The size of the field is 5 bits. 
+// Chunk count is written in the block header. The size of the field is 5 bits. 
 // CSi is Chunk Sizei
 // Checksum is in BPP Block Header
 */

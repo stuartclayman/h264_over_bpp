@@ -6,7 +6,6 @@
 package cc.clayman.chunk;
 
 import java.nio.ByteBuffer;
-import cc.clayman.h264.NALType;
 
 /*
  * An class for creating a Multiple Chunks.
@@ -73,6 +72,13 @@ public class MultiChunkInfo implements ChunkInfo {
         for (int i=0; i < contentSizes.length; i++) {
             content[i] = new ChunkContent(contentSizes[i]);
         }
+
+        //System.err.print("  MultiChunkInfo: ");
+        //for (int i=0; i < contentSizes.length; i++) {
+        //    System.err.print(" [" + i + "]: " + content[i].size());
+        //}
+        //System.err.print("\n");
+        
     }
 
     /**
@@ -158,13 +164,13 @@ public class MultiChunkInfo implements ChunkInfo {
      */
     public ChunkContent addPayload(ByteBuffer buf) throws UnsupportedOperationException {
         // Add to next chunk
-        //System.err.println("    content[" + nextContent + "] remaining = " + content[nextContent].remaining());
+        //System.err.println("B:    content[" + nextContent + "] remaining = " + content[nextContent].remaining());
 
         ChunkContent thisContent = content[nextContent];
 
         int remainingInChunk = thisContent.addPayload(buf);
 
-        //System.err.println("    content[" + nextContent + "] remaining = " + remainingInChunk);
+        //System.err.println("A:    content[" + nextContent + "] remaining = " + remainingInChunk);
         
         forward();
         return thisContent;

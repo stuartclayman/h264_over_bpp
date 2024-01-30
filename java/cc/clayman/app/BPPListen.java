@@ -15,6 +15,7 @@ import cc.clayman.processor.UDPChunkStreamer;
 import cc.clayman.processor.BufferingUDPChunkStreamer;
 import cc.clayman.net.*;
 import cc.clayman.terminal.ChunkDisplay;
+import cc.clayman.terminal.SVCChunkDisplay;
 import cc.clayman.util.Verbose;
 
 // Collect packets using UDPChunkStreamer
@@ -115,8 +116,9 @@ public class BPPListen {
     protected static void processTraffic() throws IOException {
         // Setup UDP Receiver
         receiver = new UDPReceiver(udpPort);
-        // and the ChunkStreamer
-        streamer = new BufferingUDPChunkStreamer(receiver);
+        // and the ChunkStreamer using a BPPSVCDepacketizer
+        // as we know BPP SVC packets are coming
+        streamer = new BufferingUDPChunkStreamer(receiver, new BPPSVCDepacketizer());
         streamer.start();
 
 
@@ -177,7 +179,7 @@ public class BPPListen {
 
         // used up 18 chars
 
-        ChunkDisplay displayer = new ChunkDisplay(columns - 22, payloadSize);
+        ChunkDisplay displayer = new SVCChunkDisplay(columns - 22, payloadSize);
         displayer.display(chunk);
         
         System.out.println(" ");

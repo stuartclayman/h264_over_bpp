@@ -11,7 +11,7 @@ import cc.clayman.processor.*;
 import cc.clayman.net.*;
 
 // A first test of the UDPSender
-// With a Raw packetizer
+// With a Simple packetizer
 public class TestNetU1 {
 
     static UDPSender sender = null;
@@ -78,7 +78,7 @@ public class TestNetU1 {
         SVCChunkInfo chunk = null;
         
         // Configure ChunkPacketizer
-        packetizer = new RawPacketizer(1500);
+        packetizer = new SimpleSVCPacketizer(1500);
 
         // Open a H264InputStream
         H264InputStream str = new H264InputStream(new FileInputStream(filename));

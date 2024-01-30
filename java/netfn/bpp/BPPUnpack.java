@@ -24,13 +24,13 @@ public class BPPUnpack {
     int totalIn = 0;
     int totalOut = 0;
     int countThisSec = 0;  // packet count this second
-    int recvThisSec = 0;   // amount sent this second
+    int recvThisSec = 0;   // amount recvd this second
     int sentThisSec = 0;   // amount sent this second
 
 
     // timing
     int seconds = 0;       // no of seconds
-    long secondStart = 0;   // when did the second start
+    long timeStart = 0;   // when did the second start
     long now = 0;
     long timeOffset = 0;
 
@@ -62,8 +62,8 @@ public class BPPUnpack {
         this.availableBandwidth = availableBandwidthBits >> 3;
         this.packetsPerSecond = packetsPerSecond;
 
-        // set secondStart
-        secondStart = System.currentTimeMillis();
+        // set timeStart
+        timeStart = System.currentTimeMillis();
     }
 
     // Adjust the bandwidth
@@ -92,8 +92,10 @@ public class BPPUnpack {
         
         // timing
         now = System.currentTimeMillis();
-        timeOffset = now - secondStart;
-        float secondPart = (float)timeOffset / 1000;
+        // Millisecond offset between now and timeStart 
+        timeOffset = now - timeStart;
+        // What is the offset in this second
+        float secondOffset = (float)timeOffset / 1000;
         
         // check bandwidth is enough
         payload = packet.getData();
@@ -102,27 +104,29 @@ public class BPPUnpack {
         totalIn += packetLength;
         recvThisSec += packetLength;
 
-        int idealSendThisSec = (int) (availableBandwidth * secondPart);
+        // The ideal no of bytes to send at this offset into a second 
+        int idealSendThisSec = (int) (availableBandwidth * secondOffset);
 
         if (idealSendThisSec < IP.BASIC_PACKET_SIZE) {
             idealSendThisSec = IP.BASIC_PACKET_SIZE;
         }
         
+        // How far behind the ideal are we
         int behind = idealSendThisSec - sentThisSec;
 
         if (Verbose.level >= 2) {
-            System.err.printf("BPPUnpack: " + count + " secondPart: " + secondPart + " countThisSec " + countThisSec +  " recvThisSec " + recvThisSec + " idealSendThisSec " + idealSendThisSec + " behind " + behind + " sentThisSec " + sentThisSec);
+            System.err.printf("BPPUnpack: " + count + " secondOffset: " + secondOffset + " countThisSec " + countThisSec +  " recvThisSec " + recvThisSec + " sentThisSec " + sentThisSec + " idealSendThisSec " + idealSendThisSec + " behind " + behind);
         }
 
         
         if (timeOffset >= 1000) {
             // we crossed a second boundary
             seconds++;
-            secondStart = now;
+            timeStart = now;
             countThisSec = 0;
             recvThisSec = 0;
             sentThisSec = 0;
-            secondPart = 0;
+            secondOffset = 0;
         }
 
 
@@ -130,18 +134,20 @@ public class BPPUnpack {
         int packetDropLevel = 0;
 
         if (behind > 0) {
-            // fine
+            // fine - we are behind the ideal send amount
             packetDropLevel = 0;
             if (Verbose.level >= 2) {
-                System.err.printf(" NO DROP\n");
+                System.err.printf(" NO_DROP\n");
             }
         } else {
             packetDropLevel =  behind;
             if (Verbose.level >= 1) {
-                System.err.printf("  drop " + packetDropLevel + "\n");
+                System.err.printf("  YES_DROP " + packetDropLevel + "\n");
             }
         }
 
+
+        // Check Packet
 
         // Look into the packet headers
         unpackDatagramHeaders(packet);
@@ -519,7 +525,7 @@ public class BPPUnpack {
         // 32 bits for BPP header
         packetBytes[0] = (byte)((0x0C << 4) & 0xFF);
         packetBytes[1] = (byte)(0x00);
-        packetBytes[2] = (byte)((chunkCount & 0x3F) << 3);
+        packetBytes[2] = (byte)((chunkCount & 0x1F) << 3);
         packetBytes[3] = (byte)(0x00);
 
         // increase bufPos

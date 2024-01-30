@@ -58,6 +58,19 @@
      </javadoc>
   </target>
 
+  <target name="print-version"> 
+    <echo>Java/JVM version: ${ant.java.version}</echo> 
+    <echo>Java/JVM detail version: ${java.version}</echo> 
+  </target>
+  
+  <target name="clean" description="Delete class files and docs dir.">
+    <delete>
+      <fileset dir="${basedir}" includes="**/*.class"/>
+    </delete>
+    <delete dir="${api}" />
+  </target>
+
+
   <!-- ALL -->
   <target name="all" depends="dist, javadoc">
   </target>

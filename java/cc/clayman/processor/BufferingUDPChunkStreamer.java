@@ -17,6 +17,7 @@ import cc.clayman.util.Verbose;
 /*
  * The reads packets from a UDPReceiver and returns ChunkInfo objects,
  * but does some buffering.
+ * Buffers a number of packets, and orders them by sequence no.
  */
 public class BufferingUDPChunkStreamer extends UDPChunkStreamer implements ChunkStreamer {
     int bufferSize = 3;
@@ -26,6 +27,8 @@ public class BufferingUDPChunkStreamer extends UDPChunkStreamer implements Chunk
     /**
      * A UDPChunkStreamer takes a UDPReceiver and returns a ChunkInfo
      * on each call
+     * Buffer size is 3 by default
+     * @param receiver a UDPReceiver
      */
     public BufferingUDPChunkStreamer(UDPReceiver receiver) {
         super(receiver);
@@ -35,9 +38,35 @@ public class BufferingUDPChunkStreamer extends UDPChunkStreamer implements Chunk
     /**
      * A UDPChunkStreamer takes a UDPReceiver and returns a ChunkInfo
      * on each call
+     * @param receiver a UDPReceiver
+     * @param depacketizer a ChunkDepacketizer
+     */
+    public BufferingUDPChunkStreamer(UDPReceiver receiver, ChunkDepacketizer depacketizer) {
+        super(receiver, depacketizer);
+        allocateBuffer();
+    }
+
+    /**
+     * A UDPChunkStreamer takes a UDPReceiver and returns a ChunkInfo
+     * on each call
+     * @param receiver a UDPReceiver
+     * @param bufferSize 
      */
     public BufferingUDPChunkStreamer(UDPReceiver receiver, int bufferSize) {
         super(receiver);
+        this.bufferSize = bufferSize;
+        allocateBuffer();
+    }
+
+    /**
+     * A UDPChunkStreamer takes a UDPReceiver and returns a ChunkInfo
+     * on each call
+     * @param receiver a UDPReceiver
+     * @param depacketizer a ChunkDepacketizer
+     * @param bufferSize 
+     */
+    public BufferingUDPChunkStreamer(UDPReceiver receiver, ChunkDepacketizer depacketizer, int bufferSize) {
+        super(receiver, depacketizer);
         this.bufferSize = bufferSize;
         allocateBuffer();
     }

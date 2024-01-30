@@ -14,6 +14,7 @@ import cc.clayman.chunk.*;
 import cc.clayman.processor.MultiNALProcessor;
 import cc.clayman.net.*;
 import cc.clayman.terminal.ChunkDisplay;
+import cc.clayman.terminal.SVCChunkDisplay;
 import cc.clayman.util.Verbose;
 
 // A UDP receiver 
@@ -166,7 +167,7 @@ public class UDPListen {
 
         TemporalLayerModel model = new TemporalLayerModelGOB16();
 
-        ChunkDepacketizer depacketizer = new RawDepacketizer();
+        ChunkDepacketizer depacketizer = new SimpleSVCDepacketizer();
 
         NALType type = null;
         int nalNo = 0;
@@ -185,7 +186,7 @@ public class UDPListen {
         while ((packet = receiver.getPacket()) != null) {
             lastTime = System.currentTimeMillis();
             
-            // RawDepacketizer returns SVCChunkInfos
+            // SimpleSVCDepacketizer returns SVCChunkInfos
             SVCChunkInfo chunk = (SVCChunkInfo)depacketizer.convert(packet);
 
             // sequence
@@ -238,7 +239,7 @@ public class UDPListen {
                 type = chunk.getNALType();
                 nalNo = chunk.getNALNumber();
                 nalCount = chunk.getNALCount();
-                // Rawdeacketizer only creates 1 ChunkContent
+                // Simple Deacketizer only creates 1 ChunkContent
                 content = chunk.getChunkContent(0);
                 fragment = content.getFragmentationNumber();
 
@@ -411,9 +412,9 @@ public class UDPListen {
 
         int packetLen = packet.getLength();            // no of bytes
 
-        int payloadLen = packet.getLength() - RawPacketizer.HEADER_SIZE;      // no of payload bytes
+        int payloadLen = packet.getLength() - SimpleSVCPacketizer.HEADER_SIZE;      // no of payload bytes
 
-        for (int b=RawPacketizer.HEADER_SIZE; b<packetLen; b++) {
+        for (int b=SimpleSVCPacketizer.HEADER_SIZE; b<packetLen; b++) {
             outputStream.write(packetBytes[b]);
         }
     }
@@ -487,7 +488,7 @@ public class UDPListen {
 
         // used up 18 chars
 
-        ChunkDisplay displayer = new ChunkDisplay(columns - 22, payloadSize);
+        ChunkDisplay displayer = new SVCChunkDisplay(columns - 22, payloadSize);
         displayer.display(chunk);
         
         System.out.println(" ");
