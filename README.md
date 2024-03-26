@@ -1,12 +1,11 @@
 ## Info
 
-This contains java code to read H264 files, and send them using the
-BPP packet format.
+This contains java code to read H264 files, and send them using the BPP packet format, and do *Packet Trimming* during transmission.
 The receiver can print data or reconstruct a valid H264 stream to
 save.
 
 These programs can be used with an external virtualisation platform
-which can enact BPP behaviours to drop chunks under certain network conditions.  
+which can enact BPP behaviours to do *Packet Trimming* in order to drop chunks under certain network conditions.  
 
 The provided instance is the BPP Forwarder [included with this software](java/netfn/README.md)
 
@@ -129,4 +128,8 @@ All commands support verbose output, at different levels:
 **-v** Verbose level 1  
 **-vv** Verbose level 2  
 **-vvv** Verbose level 3  
+
+## Papers
+
+The [following papers](Papers.md) have been written about Packet Trimming using BPP.
 

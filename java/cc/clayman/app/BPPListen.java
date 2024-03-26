@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 
 import cc.clayman.h264.*;
 import cc.clayman.chunk.*;
@@ -34,6 +37,10 @@ public class BPPListen {
     static long lastTime = 0;
 
 
+    // listen host
+    static String host = null;
+    static InetAddress inetAddr = null;
+    
     // listen port
     static int udpPort = 6799;
 
@@ -114,8 +121,25 @@ public class BPPListen {
 
 
     protected static void processTraffic() throws IOException {
-        // Setup UDP Receiver
-        receiver = new UDPReceiver(udpPort);
+        // Check where we are receiving
+
+        if (inetAddr == null) {
+            // Setup UDP Receiver
+            receiver = new UDPReceiver(udpPort);
+        } else {
+            // got an inetAddr
+            if (inetAddr.isMulticastAddress()) {
+                receiver = new MulticastReceiver(new InetSocketAddress(inetAddr, udpPort));
+
+                if (Verbose.level >= 1) {
+                    System.err.println("MulticastReceiver " + inetAddr + " / " + udpPort);
+                }
+
+            } else {
+                receiver = new UDPReceiver(new InetSocketAddress(inetAddr, udpPort));
+            }
+        }
+                  
         // and the ChunkStreamer using a BPPSVCDepacketizer
         // as we know BPP SVC packets are coming
         streamer = new BufferingUDPChunkStreamer(receiver, new BPPSVCDepacketizer());

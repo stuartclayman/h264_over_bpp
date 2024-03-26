@@ -150,7 +150,7 @@ public class H264Listen {
 
 
     protected static void processTraffic() throws IOException {
-        // Check where we are sending
+        // Check where we are receiving
 
         if (inetAddr == null) {
             // Setup UDP Receiver
