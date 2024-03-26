@@ -12,7 +12,7 @@ Stuart Clayman, Emre Karakış, Mustafa Tuker, Elif Ak, Berk Canberk, Müge Say�
 - **Using packet trimming at the edge for in-network video quality adaption**  
 Mustafa Tuker, Emre Karakış, Müge Sayıt, Stuart Clayman.  
 *Annals of Telecommunications, Springer, 2023.*
-
+[Journal](https://link.springer.com/article/10.1007/s12243-023-00981-8)
  
 - **Energy Aware Video Streaming from Drones with End-to-End Delivery using Packet Trimming**  
 Emre Karakış, Stuart Clayman, Mustafa Tuker, Müge Sayıt.  
@@ -32,6 +32,7 @@ Stuart Clayman, Mustafa Tuker, Emre Karakış, Muge Sayit
 - **Low Latency Low Loss Media Delivery Utilizing In-Network Packet Wash** 
 Stuart Clayman and Müge Sayıt.  
 *Journal of Network and Systems Management, January 2023.*
+ [Journal](https://link.springer.com/article/10.1007/s10922-022-09712-1)
 
 - **The Effects of Packet Wash on SVC Video in Limited Bandwidth Environments**  
 Stuart Clayman and Muge Sayit  
