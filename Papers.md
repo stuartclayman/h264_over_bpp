@@ -25,7 +25,7 @@ Emre Karakış, Stuart Clayman, Mustafa Tuker, Müge Sayıt.
 
 
 - **In-Network Video Quality Adaption using Packet Trimming at the Edge**  
-Stuart Clayman, Mustafa Tuker, Emre Karakış, Muge Sayit
+Stuart Clayman, Mustafa Tuker, Emre Karakış, Muge Sayit  
 *26th Conference on Innovation in Clouds, Internet and Networks and Workshops (ICIN), March 2023*.
 
 
@@ -44,7 +44,7 @@ Stuart Clayman, Mustafa Tuker, Halil Arasan, Muge Sayit
 
 - **In-Network Scalable Video Adaption Using Big Packet Protocol**  
 Stuart Clayman and Muge Sayit.  
-*MMSys '21: 12th ACM Multimedia Systems. June 2021*.
+*ACM 12th Multimedia Systems, MMSys 21, June 2021*.
 
 - **The Future of Media Streaming Systems: Transferring Video over New IP**  
 Stuart Clayman, Mustafa Tuker, Halil Arasan, Muge Sayit  
