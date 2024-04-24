@@ -15,20 +15,21 @@ import java.net.UnknownHostException;
 import cc.clayman.h264.*;
 import cc.clayman.chunk.*;
 import cc.clayman.processor.MultiNALRebuilder;
+import cc.clayman.processor.MissingNALAnalyser;
 import cc.clayman.processor.UDPChunkStreamer;
 import cc.clayman.processor.BufferingUDPChunkStreamer;
-import cc.clayman.processor.NALResult;
 import cc.clayman.net.*;
 import cc.clayman.util.Verbose;
 
 
-// Use the MultiNALRebuilder to create an H264 stream
+// Use the MultiNALRebuilder to create an H264 stream,
+// using the MissingNALAnalyser which does NAL dependency analysis.
 
 public class H264Listen {
 
     static UDPReceiver receiver = null;
     static UDPChunkStreamer streamer = null;
-    static MultiNALRebuilder rebuilder = null;
+    static MissingNALAnalyser analyser  = null;
 
     static int count = 0;
     static int total = 0;
@@ -173,13 +174,17 @@ public class H264Listen {
         // as we know BPP SVC packets are coming
         streamer = new BufferingUDPChunkStreamer(receiver, new BPPSVCDepacketizer());
         // and the MultiNALRebuilder
-        rebuilder = new MultiNALRebuilder(streamer, NO_OF_VCLS);
-        rebuilder.start();
+        // which takes a collection of chunks and rebuild a stream on NALs
+        MultiNALRebuilder rebuilder = new MultiNALRebuilder(streamer, NO_OF_VCLS);
 
         // Setup rebuilder printer
         if (Verbose.level >= 1) {
             rebuilder.onChunk(new SVCChunkInfoPrinter());
         }
+
+        // plus the MissingNALAnalyser which does NAL dependency analysis
+        analyser = new MissingNALAnalyser(rebuilder, NO_OF_VCLS);
+        analyser.start();
 
 
         // open file - maybe
@@ -219,158 +224,33 @@ public class H264Listen {
             timer.schedule(timerTask, 1000, 1000);
         }
 
-        // A NAL
-        NAL nal = null;
-        int vclCount = 0;
-        int qualityLayer = 0;
-        boolean prevIsNonVCL  = true;
-        TemporalLayerModel model = new TemporalLayerModelGOB16();
 
-        boolean [] droppedLayer = new boolean[NO_OF_VCLS];
-
-        resetDroppedLayer(droppedLayer);
-        
-        while (rebuilder.hasNext()) {
+        while (analyser.hasNext()) {
             lastTime = System.currentTimeMillis();
-            
-            NALResult nalResult = rebuilder.next();
 
-            if (nalResult != null) {
+            // A NAL
+            NAL nal = analyser.next();
 
-                if (Verbose.level >= 1) {
-                    System.err.println(qualityLayer + " " + nalResult);
-                }
+            if (nal != null) {
+                count++;
 
-
-                
-
-                if (nalResult.state == NALResult.State.NAL) {
-
-                    nal = nalResult.getNAL().get();
-
-                    if (!nal.isVideo()) {
-                        qualityLayer = 0;
-                    }
-
-                    if (Verbose.level >= 1) {
-                        System.err.println("LISTEN: NAL " + nalResult.nalType + " " + nalResult.number + " / " + qualityLayer + " Time: " + System.nanoTime());
-                    }
-
-
-                } else if (nalResult.state == NALResult.State.WASHED) {
-
-                    droppedLayer[qualityLayer] = true;
-
-                    if (Verbose.level >= 1) {
-                        System.err.println("LISTEN: WASHED " + nalResult.nalType + " " + nalResult.number + " / " + qualityLayer + " Time: " + System.nanoTime());
-
-                        System.err.printf("QUALITY: WASHED VCLNo: %d Qualitylayer: %d Time: %d\n", vclCount, qualityLayer, System.nanoTime());
-                        
-                    }
-
-
-
-                    // increase qualityLayer for next time
-                    qualityLayer = (qualityLayer + 1) % NO_OF_VCLS;
-
-                    continue;
-                                    
-                } else if (nalResult.state == NALResult.State.DROPPED) {
-                    // there was a reason to not rebuild the NAL
-                    // probably data was stripped in the network
-                    droppedLayer[qualityLayer] = true;
-
-                    // increase qualityLayer for next time
-                    qualityLayer = (qualityLayer + 1) % NO_OF_VCLS;
-
-
-                    if (Verbose.level >= 1) {
-                        System.err.println("LISTEN: DROPPED " +  nalResult.nalType + " " + nalResult.number + " / " + qualityLayer + " Time: " + System.nanoTime());
-                    }
-
-                    
-                    continue;
-
-                }
-
-                                
-                if (nal != null) {
-                    count++;
-                    total += nal.getSize();
-
-                    // A good test of the system
-                    // Can we print using the printChunk()
-                    // from a class on the server side
-                    // printNAL(nal, count, total);
-
-                    // Is it a VCL 
-                    if (nal.isVideo()) {
-                        // Keep track of no of VCLs
-                        if (prevIsNonVCL) {
-                            vclCount++;
-                            prevIsNonVCL = false;                            
-                        }
-
-
-                        // Look at TemporalLayerModelGOB16
-                        TemporalLayerModel.Tuple currentNALModel = model.getLayerInfo(vclCount);
-
-                        if (currentNALModel.frame == Frame.I && qualityLayer == 0) {
-                            // It's an I frame, so reset droppedLayers
-                            resetDroppedLayer(droppedLayer);
-                        }
-                           
-                        // What should we do with the NAL
-                        if (droppedLayer[qualityLayer] != true)  {
-                            // The NAL at this qualityLayer is not washed away
-                            
-                            if (Verbose.level >= 1) {
-                                System.err.printf("QUALITY: COLLECT VCLNo: %d FrameNo: %s Frame: %s Temporal: %s  Qualitylayer: %d Time: %d\n", vclCount, vclCount + currentNALModel.adjustment, currentNALModel.frame, currentNALModel.temporal, qualityLayer, System.nanoTime());  // WAS currentTimeMillis());
-                            }
-
-                            // Write NAL to the outputStream
-                            writeNAL(outputStream, nal);
-                        } else {
-                            // droppedLayer[qualityLayer] is true
-                            // which means a previous NAL at this qualityLayer
-                            // was washed away, so we cannot use it as
-                            // there is a dependency
-                            if (Verbose.level >= 1) {
-                                System.err.println("LISTEN: NOT_WRITING " + nalResult.number + " / " + qualityLayer + " Time: " + System.nanoTime());
-
-
-                                System.err.printf("QUALITY: NOT_WRITING VCLNo: %d FrameNo: %s Frame: %s Temporal: %s  Qualitylayer: %d Time: %d\n", vclCount, vclCount + currentNALModel.adjustment, currentNALModel.frame, currentNALModel.temporal, qualityLayer, System.nanoTime());  // WAS currentTimeMillis());
-                            }
-
-                        }
-
-                        
-                        // increase qualityLayer for next time
-                        qualityLayer = (qualityLayer + 1) % NO_OF_VCLS;
-
-
-                    } else {
-                        prevIsNonVCL = true;
-                        qualityLayer = 0;
-
-                        writeNAL(outputStream, nal);
-                        
-                    }
-
-                    
-                        
-                }
+                // Write NAL to the outputStream
+                writeNAL(outputStream, nal);
             }
+            
         }
-
-        timer.cancel();
 
         if (outputStream != null) {
             outputStream.close();
         }
 
+        timer.cancel();
+
         // stop receiver
+        analyser.stop();
+        rebuilder.stop();
         streamer.stop();
+
 
     }
 
@@ -381,12 +261,6 @@ public class H264Listen {
             }
         } catch (IOException ioe) {
             System.err.println("Cant write to " + filename + " " + ioe);
-        }
-    }
-
-    private static void resetDroppedLayer(boolean [] droppedLayer) {
-        for (int i=0; i < NO_OF_VCLS; i++) {
-            droppedLayer[i] = false;
         }
     }
 
