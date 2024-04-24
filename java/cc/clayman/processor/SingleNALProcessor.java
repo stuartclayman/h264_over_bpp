@@ -22,7 +22,7 @@ import cc.clayman.net.IP;
 /*
  * A processor of NALs, that creates a single Chunk on each call.
  */
-public class SingleNALProcessor implements NALProcessor, Iterator {
+public class SingleNALProcessor implements NALProcessor, Iterator<ChunkInfo> {
     // The H264InputStream we are reading from
     H264InputStream inStream;
     

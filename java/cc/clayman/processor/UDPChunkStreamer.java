@@ -52,7 +52,7 @@ public class UDPChunkStreamer implements ChunkStreamer {
      * Returns true if there are more ChunkInfo
      */
     public boolean hasNext() {
-        return ! receiver.isEOF();
+        return (! receiver.isEOF()) || (receiver.isRunning());
     }
 
     /**

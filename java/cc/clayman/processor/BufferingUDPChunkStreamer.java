@@ -82,11 +82,11 @@ public class BufferingUDPChunkStreamer extends UDPChunkStreamer implements Chunk
      * Returns true if there are more ChunkInfo
      */
     public boolean hasNext() {
-        if (receiver.isEOF()) {
+        if (receiver.isEOF() || (! receiver.isRunning())) {
             if (Verbose.level >= 2) {
                 System.err.println("BufferingUDPChunkStreamer hasNext() EOF: size = " + list.size());
             }
-            // on EOF we need to drain the list
+            // on EOF or not running we need to drain the list
             if (list.size() == 0) {
                 return false;
             } else {
@@ -103,7 +103,7 @@ public class BufferingUDPChunkStreamer extends UDPChunkStreamer implements Chunk
      */
     public ChunkInfo next() {
         // do we need to drain the list
-        if (receiver.isEOF()) {
+        if (receiver.isEOF() || (!receiver.isRunning())) {
             if (list.size() == 0) {
                 return null;
             } else {

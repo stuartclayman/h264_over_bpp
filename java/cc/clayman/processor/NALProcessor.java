@@ -6,11 +6,12 @@
 package cc.clayman.processor;
 
 import cc.clayman.chunk.ChunkInfo;
+import java.util.Iterator;
 
 /*
  * An interface for processors of NALs.
  */
-public interface NALProcessor {
+public interface NALProcessor extends Iterator<ChunkInfo> {
     /**
      * Returns true if the iteration has more elements.
      */

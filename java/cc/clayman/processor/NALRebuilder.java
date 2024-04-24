@@ -6,12 +6,13 @@
 package cc.clayman.processor;
 
 import cc.clayman.chunk.ChunkInfo;
+import java.util.Iterator;
 
 /*
  * An interface for rebuilders of NALs.
  * These take a collection of chunks and rebuild a stream on NALs.
  */
-public interface NALRebuilder {
+public interface NALRebuilder extends Iterator<NALResult> {
     /**
      * Take a ChunkInfo and try to rebuild some NALs.
      * A ChunkInfo is passed in, and potentially some NALs are passed back.

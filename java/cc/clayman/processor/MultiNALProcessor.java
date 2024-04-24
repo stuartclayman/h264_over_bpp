@@ -19,7 +19,7 @@ import cc.clayman.util.Verbose;
 /*
  * A processor of NALs, that creates a single ChunkInfo on each call.
  */
-public class MultiNALProcessor implements NALProcessor, Iterator {
+public class MultiNALProcessor implements NALProcessor, Iterator<ChunkInfo> {
     // The H264InputStream we are reading from
     H264InputStream inStream;
     

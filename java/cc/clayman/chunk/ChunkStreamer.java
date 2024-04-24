@@ -5,11 +5,13 @@
 
 package cc.clayman.chunk;
 
+import java.util.Iterator;
+
 
 /*
  * An interface for ChunkStreamers
  */
-public interface ChunkStreamer {
+public interface ChunkStreamer extends Iterator<ChunkInfo> {
 
     /**
      * Returns true if there are more ChunkInfo

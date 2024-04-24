@@ -62,6 +62,24 @@ All commands support verbose output, at different levels:
 **-vv** Verbose level 2  
 **-vvv** Verbose level 3  
 
+
+## Bandwidth Adjustment
+
+It is possible to adjust the selected bandwidth on the BPP Forwarder
+and the UDP Forwarder.
+They both listen on an HTTP port for requests.
+
+An example to get the current bandwidth (where the HTTP listen port is
+9090):
+
+`curl http://localhost:9090/BW`
+
+and an example to set the bandwidth to 1.2 Mbps:
+
+`curl http://localhost:9090/BW?bw=1.2`
+
+
+
 ## Algorithm
 
 The *Packet Trimming Algorithm* used in the BPP forwarder is described in the paper 
@@ -136,4 +154,3 @@ ForEach (packet received) {
 
 
 ```
-¢
