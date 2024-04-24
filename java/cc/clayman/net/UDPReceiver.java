@@ -217,7 +217,7 @@ public class UDPReceiver implements Runnable {
 
             // Loop around getPacketInner() a number of times
             // After NoTrafficThreshold attempts we decide there is nothing
-            while (true) {
+            while (!eof) {
                 // call getPacketInner()
                 packet = getPacketInner();
                     
@@ -253,6 +253,8 @@ public class UDPReceiver implements Runnable {
 
                 }
             }
+
+            return null;
 
         }
     }
@@ -327,14 +329,18 @@ public class UDPReceiver implements Runnable {
                     System.err.println("InterruptedException " + ie);
                     //ie.printStackTrace();
                 }
+
+                running = false;
+
             } catch (EOFException ee) {
                 if (Verbose.level >= 2) {
-                    System.err.println("InterruptedException " + ee);
+                    System.err.println("EOFException " + ee);
                     //ee.printStackTrace();
                 }
                 
                 eof = true;
                 running = false;
+
             } catch (IOException ioe) {
                 if (running) {
                     if (Verbose.level >= 2) {
