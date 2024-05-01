@@ -36,27 +36,33 @@ public class BPPForwarder implements ManagementListener {
     // in bits
     int bandwidthBits = 1024 * 1024;   // default: 1 Mb
     int bandwidth = 0;
-    int packetsPerSecond = 100;  // default: 100
 
     UDPReceiver receiver = null;
     UDPSender sender = null;
     BPPFn bppFn = null;
 
-    int count = 0;
     int totalIn = 0;
     int totalOut = 0;
+    
+    // Input / Output counts
+    int count = 0;
+    int countLastSecond = 0;
+    long volumeIn = 0;
+    long volumeOut = 0;
+    long volumeInLastSecond = 0;
+    long volumeOutLastSecond = 0;
+
 
 
     // keep time
     long startTime = 0;
     long lastTime = 0;
 
-    public BPPForwarder(int udpPort, String forwardHost, int forwardPort, float bandwidth, int packetsPerSecond) {
+    public BPPForwarder(int udpPort, String forwardHost, int forwardPort, int bandwidth) {
         this.udpPort = udpPort;
         this.forwardHost = forwardHost;
         this.forwardPort = forwardPort;
         setBandwidth(bandwidth);
-        setPacketsPerSecond(packetsPerSecond);
 
         System.out.printf("BW:  %9d%10d\n", count, bandwidthBits);
 
@@ -68,9 +74,6 @@ public class BPPForwarder implements ManagementListener {
         receiver = new UDPReceiver(udpPort);
         receiver.start();
 
-        // Setup BPPFn
-        bppFn = new BPPFn(bandwidthBits, packetsPerSecond);
-
         // Setup UDP Sender
         sender = new UDPSender(forwardHost, forwardPort);
         sender.start();
@@ -80,16 +83,18 @@ public class BPPForwarder implements ManagementListener {
         startTime = System.currentTimeMillis();
         lastTime = System.currentTimeMillis();
 
-
+        // sit and listen
         while (! receiver.isEOF()) {
             lastTime = System.currentTimeMillis();
             
+            // get a packet
             DatagramPacket packet = receiver.getPacket();
 
             if (packet == null) {
                 // the receiver has nothing to pass on
                 break;
             } else {
+                // process the packet
                 count++;
                 totalIn += packet.getLength();
                 
@@ -107,12 +112,15 @@ public class BPPForwarder implements ManagementListener {
     }
 
             
+    /**
+     * Process the recevied Datagram
+     */
     protected void datagramProcess(DatagramPacket packet) throws UnknownHostException {
         int length = packet.getLength();
         
         System.out.printf("IN:   %8d%6d%10d\n", count, length, totalIn);
 
-        DatagramPacket newVal = bppFn.datagramProcess(packet);
+        DatagramPacket newVal = trimDatagram(packet);
 
         if (newVal == null) {
             // nothing to send
@@ -133,11 +141,89 @@ public class BPPForwarder implements ManagementListener {
         }
     }
 
+    /**
+     * Try and trim the recevied Datagram
+     *
+     * Return a Datagram to forward Datagram
+     * Return null to throw it away.
+     */
+    protected DatagramPacket trimDatagram(DatagramPacket datagram) {
+
+        count++;
+        countLastSecond++;
+
+        try {
+            // increase volumeIn
+            volumeIn += datagram.getLength();
+            volumeInLastSecond += datagram.getLength();
+                
+            // check if a BPPFn is set
+            byte[] result = null;
+            
+            if (bppFn != null) {
+                // do the processing and conversion
+                result = bppFn.process(count, datagram);
+            } else {
+                // no bpp fn, so just forward
+                result = null;
+            }
+            
+
+            // now patch up the datagram to have modified contents
+            // or forward current datagram if result is null
+            if (result == null) {
+                // nothnig to do but forward the datagram
+
+                // increase volumeOut
+                volumeOut += datagram.getLength();
+                volumeOutLastSecond += datagram.getLength();
+
+                // Get the network function to forward the packet
+                return datagram;
+
+            } else {
+                // we have new payload
+                if (Verbose.level >= 3) {
+                    System.err.println("datagram length = " + datagram.getLength() + " newPayload length = " + result.length);
+                }
+                    
+                DatagramPacket newDatagram = new DatagramPacket(result, result.length);
+                newDatagram.setAddress(datagram.getAddress());
+                newDatagram.setPort(datagram.getPort());
+
+                // increase volumeOut
+                volumeOut += newDatagram.getLength();
+                volumeOutLastSecond += newDatagram.getLength();
+
+                // DO NOT get the network function to forward the packet
+                // send our one
+                return newDatagram;
+            }                
+        } catch (Exception e) {
+            System.err.println(e.getClass() + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    // Set the BPP  Function
+    // @return old BPP function
+    public BPPFn setBPPFn(BPPFn bppF) {
+        BPPFn old = bppFn;
+
+        bppFn = bppF;
+
+        return old;
+    }
     
-    // set the bandwidthBits 
-    // convert float 0.8 Mbps -> 838860 bits
-    public void setBandwidth(float bb) {
-        bandwidthBits = (int)(bb * 1024 * 1024);
+    // Get the current BPP  Function
+    public BPPFn getBPPFn() {
+        return bppFn;
+    }
+    
+    // set the bandwidthBits
+    // passed in as bits / sec
+    public void setBandwidth(int bb) {
+        bandwidthBits = bb;
         bandwidth = bandwidthBits >> 3;
         if (Verbose.level >= 2) {
             System.err.println("BPPForwarder: bandwidthBits = " + bandwidthBits + " bandwidth = " + bandwidth);
@@ -151,7 +237,7 @@ public class BPPForwarder implements ManagementListener {
 
     // Adjust the bandwidth
     // Returns the old bandwidth
-    public int adjustBandwidth(float bb) {
+    public int adjustBandwidth(int bb) {
         // Save old bandwidthBits
         int oldBW = bandwidthBits;
 
@@ -165,11 +251,5 @@ public class BPPForwarder implements ManagementListener {
 
         return oldBW;
     }
-    
-
-    protected void setPacketsPerSecond(int c) {
-        packetsPerSecond = c;
-    }
-            
-    
+        
 }

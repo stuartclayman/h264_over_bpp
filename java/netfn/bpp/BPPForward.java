@@ -26,7 +26,7 @@ public class BPPForward {
     static int columns = 80;    // default no of cols on terminal
 
     // in mega-bits
-    static float bandwidthBits = 1;   // default: 1 Mb
+    static int bandwidthBits = 1 * 1024 * 1024;   // default: 1 Mb
     static int packetsPerSecond = 100;  // default: 100
 
     // Forwarder
@@ -85,7 +85,8 @@ public class BPPForward {
                     String countValue =  args[argc];
 
                     try {
-                        bandwidthBits = Float.parseFloat(countValue);
+                        float mbps = Float.parseFloat(countValue);
+                        bandwidthBits =  (int)(mbps * 1024 * 1024);
                     } catch (Exception e) {
                         System.err.println("Bad bandwidth value: " + countValue);
                     }
@@ -134,8 +135,15 @@ public class BPPForward {
         
         try {
             // Create the forwarder
-            forwarder = new BPPForwarder(udpPort, forwardHost, forwardPort, bandwidthBits, packetsPerSecond);
-            // Create ProcessExternal object.
+            forwarder = new BPPForwarder(udpPort, forwardHost, forwardPort, bandwidthBits);
+
+            // Set the BPP Function
+            BPPFn bppFn = new BPPBasicBandwidth(bandwidthBits);
+
+            forwarder.setBPPFn(bppFn);
+
+
+            // Create an HTTP hander object.
             // It will callback to the BPPForwarder as a  ManagementListener
             ProcessExternal handler = new ProcessExternal(httpPort, forwarder);
 

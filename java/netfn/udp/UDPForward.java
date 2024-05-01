@@ -26,7 +26,7 @@ public class UDPForward {
     static int columns = 80;    // default no of cols on terminal
 
     // in mega-bits
-    static float bandwidthBits = 1;   // default: 1 Mb
+    static int bandwidthBits = 1 * 1024 * 1024;   // default: 1 Mb
     static int packetsPerSecond = 100;  // default: 100
 
     // Forwarder
@@ -85,7 +85,8 @@ public class UDPForward {
                     String countValue =  args[argc];
 
                     try {
-                        bandwidthBits = Float.parseFloat(countValue);
+                        float mbps = Float.parseFloat(countValue);
+                        bandwidthBits =  (int)(mbps * 1024 * 1024);
                     } catch (Exception e) {
                         System.err.println("Bad bandwidth value: " + countValue);
                     }

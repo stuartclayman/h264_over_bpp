@@ -8,38 +8,28 @@ import cc.clayman.util.ANSI;
 import cc.clayman.util.Verbose;
 
 /**
- * Unpack a packet containing BPP data
- */
-public class BPPUnpack {
+ * A NetFn that does some BPP processing 
+ *
+ * There are 4 main phases: (i)
+ * getting Timing information when a packet arrives; (ii) doing Pre
+ * processing of packet to get the packet size and the determining the
+ * ideal number of bytes to send at the particular offset into a
+ * second; (iii) to Check the current second to see if a second
+ * boundary has been crossed; and (iv) the Decision making and
+ * forwarding which processes each packet.
+*/
+public abstract class AbstractBPPFn implements BPPFn {
+    
     // Available bandwidth (in bytes)
     int availableBandwidth = 0;
     // Available bandwidth (in bits)
     int availableBandwidthBits = 0;
 
-    int packetsPerSecond = 0;
-    
-    // counts
-    int count = 0;
-    int chunkCount = 0;
-    int totalIn = 0;
-    int totalOut = 0;
-    int countThisSec = 0;  // packet count this second
-    int recvThisSec = 0;   // amount recvd this second
-    int sentThisSec = 0;   // amount sent this second
-
-
-    // timing
-    int seconds = 0;       // no of seconds
-    long timeStart = 0;   // when did the second start
-    long now = 0;
-    long timeOffset = 0;
-
-
     // payload
     byte[] payload = null;
     int packetLength = 0;
 
-    
+
     // Datagram contents
     int command = 0;
     int condition = 0;
@@ -56,236 +46,111 @@ public class BPPUnpack {
     int nalNo = 0;
     NALType nalType = null;
 
+    // counts
+    int count = 0;
+    int chunkCount = 0;
+    int totalIn = 0;
+    int totalOut = 0;
+    int countThisSec = 0;  // packet count this second
+    int recvThisSec = 0;   // amount recvd this second
+    int sentThisSec = 0;   // amount sent this second
 
-    public BPPUnpack(int availableBandwidthBits, int packetsPerSecond) {
-        this.availableBandwidthBits = availableBandwidthBits;
-        this.availableBandwidth = availableBandwidthBits >> 3;
-        this.packetsPerSecond = packetsPerSecond;
+
+    // timing
+    int seconds = 0;       // no of seconds
+    long timeStart = 0;   // when did the second start
+    long now = 0;
+    long timeOffset = 0;
+    float secondOffset = 0.0f;   // offset into the current second
+
+
+    // Construct a BPPFn
+    // bandwidthBits is integer:  838860 bits
+    public AbstractBPPFn(int bandwidthBits) {
+        this.availableBandwidthBits = bandwidthBits;
+        // 838860 bits = 104858 bytes
+        this.availableBandwidth = bandwidthBits >> 3;
 
         // set timeStart
         timeStart = System.currentTimeMillis();
     }
+        
+    // Construct a BPPFn
+    // bandwidthBits is float:  0.8 Mbps
+    public AbstractBPPFn(float bandwidthMegabits) {
+        this.availableBandwidthBits = convertBandwidth(bandwidthMegabits);
+        this.availableBandwidth = this.availableBandwidthBits >> 3;
+    }
 
-    // Adjust the bandwidth
+    /**
+     * Process the nth packet.
+     *
+     * Steps are:
+     * ▷ Timing
+     * ▷ Pre processing of packet
+     * ▷ Check current second
+     * ▷ Decision making and forwarding
+     * @return a byte[] which is the content to forward on
+     */
+    public byte[] process(int count, DatagramPacket packet) throws UnsupportedOperationException {
+        this.count = count;
+        
+        // ▷ Timing
+        bppDoTiming();
+        
+        // ▷ Pre processing of packet
+        int behind = bppPre(packet);
+        
+        // ▷ Check current second
+        bppCheckTiming();
+        
+        // ▷ Decision making and forwarding
+        byte[] result = bppTrim(behind, packet);
+
+        return result;        
+    }
+
+    // ▷ Timing
+    public abstract void bppDoTiming();
+        
+    // ▷ Pre processing of packet
+    // @return how far below the ideal bandwidth is this packet
+    public abstract int bppPre(DatagramPacket packet);
+        
+    // ▷ Check current second
+    public abstract void bppCheckTiming();
+        
+    // ▷ Decision making and forwarding
+    public abstract byte[] bppTrim(int below, DatagramPacket packet);
+
+    
+    
+    // Get the bandwidth in bits
+    public int getBandwidth() {
+        return availableBandwidthBits;
+
+    }    
+
+    // Adjust the bandwidth (in bits per second)
     public void setBandwidth(int bitsPerSecond) {
         this.availableBandwidthBits = bitsPerSecond;
         this.availableBandwidth = bitsPerSecond >> 3;
     }    
 
-    /**
-     * Unpack a DatagramPacket
-     * @throws UnsupportedOperationException if it can't work out what to do
-     */
-    public byte[] convert(int count, DatagramPacket packet) throws UnsupportedOperationException {
-        return convertB(count, packet);
-    }
-
-
-    /**
-     * Unpack a DatagramPacket
-     * Based on bandwidth
-     * @throws UnsupportedOperationException if it can't work out what to do
-     */
-    public byte[] convertB(int count, DatagramPacket packet) throws UnsupportedOperationException {
-        this.count = count;
-        countThisSec++;
-        
-        // timing
-        now = System.currentTimeMillis();
-        // Millisecond offset between now and timeStart 
-        timeOffset = now - timeStart;
-        // What is the offset in this second
-        float secondOffset = (float)timeOffset / 1000;
-        
-        // check bandwidth is enough
-        payload = packet.getData();
-        packetLength = packet.getLength(); 
-
-        totalIn += packetLength;
-        recvThisSec += packetLength;
-
-        // The ideal no of bytes to send at this offset into a second 
-        int idealSendThisSec = (int) (availableBandwidth * secondOffset);
-
-        if (idealSendThisSec < IP.BASIC_PACKET_SIZE) {
-            idealSendThisSec = IP.BASIC_PACKET_SIZE;
-        }
-        
-        // How far behind the ideal are we
-        int behind = idealSendThisSec - sentThisSec;
-
-        if (Verbose.level >= 2) {
-            System.err.printf("BPPUnpack: " + count + " secondOffset: " + secondOffset + " countThisSec " + countThisSec +  " recvThisSec " + recvThisSec + " sentThisSec " + sentThisSec + " idealSendThisSec " + idealSendThisSec + " behind " + behind);
-        }
-
-        
-        if (timeOffset >= 1000) {
-            // we crossed a second boundary
-            seconds++;
-            timeStart = now;
-            countThisSec = 0;
-            recvThisSec = 0;
-            sentThisSec = 0;
-            secondOffset = 0;
-        }
-
-
-        // work out packetDropLevel
-        int packetDropLevel = 0;
-
-        if (behind > 0) {
-            // fine - we are behind the ideal send amount
-            packetDropLevel = 0;
-            if (Verbose.level >= 2) {
-                System.err.printf(" NO_DROP\n");
-            }
-        } else {
-            packetDropLevel =  behind;
-            if (Verbose.level >= 1) {
-                System.err.printf("  YES_DROP " + packetDropLevel + "\n");
-            }
-        }
-
-
-        // Check Packet
-
-        // Look into the packet headers
-        unpackDatagramHeaders(packet);
-
-        if (packetDropLevel < 0) {
-            // If we need to drop something, we need to look at the content
-            unpackDatagramContent(packet);
-
-            int droppedAmount = dropContent(-packetDropLevel);
-
-            int size = packetLength - droppedAmount;
-            totalOut += size;
-            sentThisSec += size;
-
-            // Now rebuild the packet payload, from the original packet
-            byte[] newPayload = packContent();
-
-            return newPayload;
-
-        } else {
-            // Get the network function to forward the packet
-            int size = packetLength;
-            totalOut += size;
-            sentThisSec += size;
-            return null;
-        }
-
-        
-    }
-
     
-
-    /**
-     * Unpack a DatagramPacket
-     * Used in recent papers
-     * @throws UnsupportedOperationException if it can't work out what to do
-     */
-    public byte[] convert0(int count, DatagramPacket packet) throws UnsupportedOperationException {
-        this.count = count;
-
-        // check bandwidth is enough
-        payload = packet.getData();
-        packetLength = packet.getLength(); 
-
-        totalIn += packetLength;
-
-        int averagePacketLen = totalIn / count;
-
-        // Look into the packet headers
-        unpackDatagramHeaders(packet);
-
-        int cond = packetsPerSecond;
-        
-        int packetDropLevel = ((packetLength * 8) - (availableBandwidthBits / cond)) / 8;
-
-        
-
-        if (Verbose.level >= 2) {
-            System.err.printf("BPPUnpack: " + count + ": availableBandwidthBits: %-10d availableBandwidth: %-10d len: %-5d, avg: %-5d condition: %-5d packetDropLevel: %d bytes\n", availableBandwidthBits, availableBandwidth, packetLength, averagePacketLen, cond, packetDropLevel);
-        }
-
-
-        if (availableBandwidth < (cond * averagePacketLen)) {
-            // If we need to drop something, we need to look at the content
-            unpackDatagramContent(packet);
-
-            int droppedAmount = dropContent(-packetDropLevel);
-
-            // Now rebuild the packet payload
-            byte[] newPayload = packContent();
-
-            return newPayload;
-
-        } else {
-            // Get the network function to forward the packet
-            return null;
-        }
-
-        
-    }
-
-    /**
-     * Unpack a DatagramPacket
-     * Similar to algorithm used in early papers
-     * @throws UnsupportedOperationException if it can't work out what to do
-     */
-    public byte[] convert1(int count, DatagramPacket packet) throws UnsupportedOperationException {
-        this.count = count;
-
-        // check bandwidth is enough
-        payload = packet.getData();
-        packetLength = packet.getLength(); 
-
-        // Look into the packet headers
-        unpackDatagramHeaders(packet);
-
-        // trafficDropLevel is no of Kbps to drop in a second
-        int trafficDropLevel = (availableBandwidthBits / 1024) - (condition * 10);
-
-        // we need to convert packetDropLevel, which is in Kbps, to a level for each packet
-        // need packets / per second to workout the correct trim level
-        int packetDropLevel = ((trafficDropLevel * 1024) / 8) / packetsPerSecond;
-
-
-        if (Verbose.level >= 2) {
-
-            //System.err.printf("BPPUnpack: " + count + ": availableBandwidthBits (Kbps): %-10d condition (Kbps): %-5d trafficDropLevel (Kbps): %d\n", availableBandwidthBits / 1024, condition * 10, trafficDropLevel);
-            //System.err.printf("BPPUnpack: " + count + ": trafficDropLevel (bits): %d trafficDropLevel (bytes): %d\n", trafficDropLevel * 1024, (trafficDropLevel * 1024) / 8);
-
-            System.err.printf("BPPUnpack: " + count + ": availableBandwidthBits: %-10d availableBandwidth: %-10d len: %-5d, condition: %-5d packetDropLevel: %d bytes\n", availableBandwidthBits, availableBandwidth, packetLength, condition, packetDropLevel);
-        }
-
-
-        if (packetDropLevel < 0) {
-            // If we need to drop something, we need to look at the content
-            unpackDatagramContent(packet);
-
-            int droppedAmount = dropContent(-packetDropLevel);
-
-            // Now rebuild the packet payload, from the original packet
-            byte[] newPayload = packContent();
-
-            return newPayload;
-
-        } else {
-            // Get the network function to forward the packet
-            return null;
-        }
-
-        
-    }
-
     /**
      * Set no of packetsPerSecond
      */
-    public void setPacketsPerSecond(int val) {
-        packetsPerSecond = val;
+    //public void setPacketsPerSecond(int val) {
+    //    packetsPerSecond = val;
+    //}
+            
+    // convert float 0.8 Mbps -> 838860 bits
+    protected int convertBandwidth(float bb) {
+        return (int)(bb * 1024 * 1024);
     }
+
+    /*********** PACKET PROCESSING ******************/
 
     /**
      * Unpack  the DatagramPacket into objects
@@ -660,4 +525,5 @@ public class BPPUnpack {
         
     }
 
+    
 }

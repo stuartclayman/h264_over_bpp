@@ -126,7 +126,7 @@ public class BPPRecv {
     }
 
     static void usage() {
-        System.err.println("BPPListen [-b bandwidth] [-p port] [-c cols]");
+        System.err.println("BPPRecv [-b bandwidth] [-p port] [-c cols]");
         System.exit(1);
     }
 
@@ -148,7 +148,7 @@ public class BPPRecv {
         receiver.start();
 
         // Setup BPPFn
-        bppFn = new BPPFn(bandwidthBits, packetsPerSecond);
+        bppFn =  new BPPBasicBandwidth(bandwidthBits);
 
         // Timer stuff
         startTime = System.currentTimeMillis();
@@ -182,9 +182,9 @@ public class BPPRecv {
         
         System.out.printf("IN:   %8d%6d%10d\n", count, length, totalIn);
 
-        DatagramPacket newVal = bppFn.datagramProcess(packet);
+        byte[] newVal = bppFn.process(count, packet);
 
-        int newLength = newVal.getLength();
+        int newLength = newVal.length;
         totalOut += newLength;
 
         if (length == newLength) {

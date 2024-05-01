@@ -39,13 +39,14 @@ Stuart Clayman and Muge Sayit
 *IEEE 23rd International Conference on High Performance Switching and Routing (HPSR), June 2022*.
 
 
+- **In-Network Scalable Video Adaption Using Big Packet Protocol**  
+Stuart Clayman and Muge Sayit.  
+*ACM 12th Multimedia Systems, MMSys 21, Sept 2021*.
+
 - **Managing Video Processing and Delivery using Big Packet Protocol with SDN Controllers**  
 Stuart Clayman, Mustafa Tuker, Halil Arasan, Muge Sayit  
 *IEEE 7th International Conference on Network Softwarization (NetSoft), June 2021*.
 
-- **In-Network Scalable Video Adaption Using Big Packet Protocol**  
-Stuart Clayman and Muge Sayit.  
-*ACM 12th Multimedia Systems, MMSys 21, June 2021*.
 
 - **The Future of Media Streaming Systems: Transferring Video over New IP**  
 Stuart Clayman, Mustafa Tuker, Halil Arasan, Muge Sayit  

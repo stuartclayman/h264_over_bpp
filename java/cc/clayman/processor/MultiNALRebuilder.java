@@ -224,13 +224,14 @@ public class MultiNALRebuilder implements NALRebuilder {
                             if (processedChunk.nalNumber < expectedNALNo) {
                                 // out of order
                                 if (Verbose.level >= 1) {
-                                    System.err.println("MISSING  out of order: " + processedChunk.nalNumber);
+                                    System.err.println("MISSING out of order: " + processedChunk.nalNumber);
                                 }
 
-                            } else {
-                                // expectedNALNo = received nalNumber + 1
-                                expectedNALNo = processedChunk.nalNumber + 1;
                             }
+
+                            
+                            // expectedNALNo = received nalNumber + 1
+                            expectedNALNo = processedChunk.nalNumber ;
 
                             // Return Error somehow
                             

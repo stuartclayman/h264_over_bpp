@@ -51,7 +51,7 @@ public class UDPForwarder implements ManagementListener {
     long startTime = 0;
     long lastTime = 0;
 
-    public UDPForwarder(int udpPort, String forwardHost, int forwardPort, float bandwidth, int packetsPerSecond) {
+    public UDPForwarder(int udpPort, String forwardHost, int forwardPort, int bandwidth, int packetsPerSecond) {
         this.udpPort = udpPort;
         this.forwardHost = forwardHost;
         this.forwardPort = forwardPort;
@@ -131,9 +131,9 @@ public class UDPForwarder implements ManagementListener {
     }
 
     // set the bandwidthBits 
-    // convert float 0.8 Mbps -> 838860 bits
-    public void setBandwidth(float bb) {
-        bandwidthBits = (int)(bb * 1024 * 1024);
+    // passed in as bits / sec
+    public void setBandwidth(int bb) {
+        bandwidthBits = bb;
         bandwidth = bandwidthBits >> 3;
         if (Verbose.level >= 2) {
             System.err.println("UDPForwarder: bandwidthBits = " + bandwidthBits + " bandwidth = " + bandwidth);
@@ -147,7 +147,7 @@ public class UDPForwarder implements ManagementListener {
 
     // Adjust the bandwidth
     // Returns the old bandwidth
-    public int adjustBandwidth(float bb) {
+    public int adjustBandwidth(int bb) {
         int oldBW = bandwidthBits;
 
         setBandwidth(bb);

@@ -10,5 +10,5 @@ public interface ManagementListener {
 
     // Adjust the bandwidth
     // Returns the old bandwidth
-    public int adjustBandwidth(float bandwidth);
+    public int adjustBandwidth(int bandwidth);
 }

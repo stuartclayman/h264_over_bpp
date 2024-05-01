@@ -195,7 +195,9 @@ public class MissingNALAnalyser implements Iterator<NAL> {
                             // The NAL at this qualityLayer is not washed away
                             
                             if (Verbose.level >= 1) {
-                                System.err.printf("QUALITY: COLLECT VCLNo: %d FrameNo: %s Frame: %s Temporal: %s  Qualitylayer: %d Time: %d\n", vclCount, vclCount + currentNALModel.adjustment, currentNALModel.frame, currentNALModel.temporal, qualityLayer, System.nanoTime());  // WAS currentTimeMillis());
+                                int nalSize = nal.getNALSize();
+                                
+                                System.err.printf("QUALITY: COLLECT VCLNo: %d FrameNo: %s Frame: %s Temporal: %s  Qualitylayer: %d Size: %d Time: %d\n", vclCount, vclCount + currentNALModel.adjustment, currentNALModel.frame, currentNALModel.temporal, qualityLayer, nalSize, System.nanoTime());  // WAS currentTimeMillis());
                             }
 
                             
