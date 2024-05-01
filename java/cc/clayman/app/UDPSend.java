@@ -31,6 +31,7 @@ public class UDPSend {
     static int columns = 80;         // default no of cols on terminal
     static int packetSize = 1500;    // packet size
 
+    static int videoKbps = 1094;          // the bandwidth of the video file
 
     
     public static void main(String[] args) {
@@ -83,6 +84,13 @@ public class UDPSend {
                     String val = args[argc];
                     columns = Integer.parseInt(val);
 
+                } else if (arg0.equals("-B")) {            
+                    // bandwidth of video in kbps
+                    argc++;
+
+                    String val = args[argc];
+                    videoKbps = Integer.parseInt(val);
+
                 } else if (arg0.startsWith("-v")) {
                     if (arg0.equals("-v")) {
                         Verbose.level = 1;
@@ -103,6 +111,7 @@ public class UDPSend {
             if (Verbose.level >= 2) {
                 System.err.println("Send on port: " + udpPort);
                 System.err.println("Packet size: " + packetSize);
+                System.err.println("Video kbps: " + videoKbps);
                 System.err.println("Columns: " + columns);
             }
         
@@ -117,12 +126,18 @@ public class UDPSend {
     }
 
     static void usage() {
-        System.err.println("UDPSend  [-f [-|filename]] [-s sleep] [-z packetSize] [-h host] [-p port]");
+        System.err.println("UDPSend  [-f [-|filename]] [-s sleep] [-z packetSize] [-h host] [-p port] [-B bandwidth]");
         System.exit(1);
     }
 
 
     protected static void processFile(String filename) throws IOException {
+        int countThisSec = 0;  // packet count this second
+        int sentThisSec = 0;   // amount sent this second
+        int expected = videoKbps * 1024 / 8;   // expected amount to send per second
+        int seconds = 0;       // no of seconds
+        long secondStart = 0;   // when did the second start
+
         // Setup UDP Sender
         sender = new UDPSender(host, udpPort);
         sender.start();
@@ -162,6 +177,9 @@ public class UDPSend {
             nalProcessor.onChunk(new SVCChunkInfoPrinter());
         }
 
+        // use default sleep
+        float lastSleep = sleep;
+
         while (nalProcessor.hasNext()) {
 
             // The MultiNALProcessor returns SVCChunkInfo objects
@@ -177,6 +195,9 @@ public class UDPSend {
             // condition and threshold set to 0
             sender.sendPayload(packetizer.convert(count, 0, 0, chunk));
     
+            /*
+             * original approach
+             
             // sleep a bit
             try { 
                 // Get second part and nanosecond part
@@ -185,7 +206,65 @@ public class UDPSend {
                 Thread.sleep(secondPart, nanosecondPart);
             } catch (InterruptedException ie) {
             }
+            */
+
+            try {
+                long now = System.currentTimeMillis();
+                long timeOffset = now - secondStart;
+                float secondPart = (float)timeOffset / 1000;
+
+                if (timeOffset >= 1000) {
+                    // we crossed a second boundary
+                    seconds++;
+                    secondStart = now;
+                    countThisSec = 0;
+                    sentThisSec = 0;
+                    secondPart = 0;
+                    lastSleep = sleep;
+                }
+
+                // how much is sent
+                int thisPacket = chunk.offset();
+                countThisSec++;
+                sentThisSec += thisPacket;
+
+                // work out sleep if ideally send packetSize
+                int idealSentThisSec = (int) (expected * secondPart);
+                int behind = idealSentThisSec - sentThisSec;
+                float value =  0; 
+
+                if (behind > 0) {
+                    // behind
+                    if (behind > packetSize) {
+                        // a bit too much behind
+                        value = (lastSleep == 1 ? 1 : lastSleep-1);
+                    } else {
+                        value = lastSleep;
+                    }
+                } else {
+                    // ahead
+                    if (behind < -packetSize) {
+                        // a bit too much ahead
+                        value = lastSleep + 1;
+                    } else {
+                        value = lastSleep;
+                    }
+                }
+                            
+
+                lastSleep = value;
+
+                if (Verbose.level >= 2) {
+                    System.err.printf("SLEEP: second: %2.3f  packetsThisSec: %3d  sentThisSec: %7d  idealSentThisSec: %7d  behindBytes: %6d  sleep: %2f\n", seconds + secondPart, countThisSec, sentThisSec, idealSentThisSec, behind, value);
+                }
+                                                            
+                Thread.sleep((int)value);
+
+            } catch (InterruptedException ie) {
+            }
+
         }
+        
 
         // close the stream
         str.close();
