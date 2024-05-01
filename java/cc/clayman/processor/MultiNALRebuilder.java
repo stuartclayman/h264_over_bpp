@@ -230,7 +230,7 @@ public class MultiNALRebuilder implements NALRebuilder {
                             }
 
                             
-                            // expectedNALNo = received nalNumber + 1
+                            // expectedNALNo = received nalNumber
                             expectedNALNo = processedChunk.nalNumber ;
 
                             // Return Error somehow
