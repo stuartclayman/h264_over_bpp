@@ -117,7 +117,7 @@ public class UDPListen {
 
 
     static void usage() {
-        System.err.println("UDPListen [-f [-|filename]] [-c cols] [-p port]");
+        System.err.println("UDPListen [-f [-|filename]] [-c cols] [-p port] [-D duration]");
         System.exit(1);
     }
 

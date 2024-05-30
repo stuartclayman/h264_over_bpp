@@ -288,6 +288,10 @@ public class BPPSend {
 
                     if (timeOffset >= 1000) {
                         // we crossed a second boundary
+                        if (Verbose.level >= 2) {
+                            System.err.printf("SENT_THIS_SEC: second: %2.3f expected: %7d  packetsThisSec: %3d  sentThisSec: %7d diff: %7d\n", seconds + secondPart, expected, countThisSec, sentThisSec, (expected-sentThisSec));
+                        }
+
                         seconds++;
                         secondStart = now;
                         countThisSec = 0;
@@ -312,7 +316,7 @@ public class BPPSend {
                         // behind
                         if (behind > packetSize) {
                             // a bit too much behind
-                            value = (lastSleep == 1 ? 1 : lastSleep-1);
+                            value = (lastSleep == 0 ? 0 : lastSleep-1);
                         } else {
                             value = lastSleep;
                         }
@@ -332,7 +336,7 @@ public class BPPSend {
                     if (Verbose.level >= 2) {
                         System.err.printf("SLEEP: second: %2.3f  packetsThisSec: %3d  sentThisSec: %7d  idealSentThisSec: %7d  behindBytes: %6d  sleep: %2f\n", seconds + secondPart, countThisSec, sentThisSec, idealSentThisSec, behind, value);
                     }
-                                                            
+
                     Thread.sleep((int)value);
 
                 } else {
