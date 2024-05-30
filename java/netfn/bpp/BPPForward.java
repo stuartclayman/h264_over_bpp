@@ -4,6 +4,7 @@ import netfn.mgmt.*;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.regex.*;
 
 import cc.clayman.util.Verbose;
 
@@ -31,6 +32,9 @@ public class BPPForward {
 
     // Forwarder
     static BPPForwarder forwarder = null;
+
+    // The BPPFn
+    static BPPFn bppFn = null;
     
     
     public static void main(String[] args) {
@@ -103,6 +107,82 @@ public class BPPForward {
                         System.err.println("Bad packets per second " + countValue);
                     }
 
+                } else if (arg0.startsWith("-B")) {
+                    // BPPFns
+                    if (arg0.equals("-Bb")) {
+                        // Use Basic Bandwidth utilization estimator
+                        bppFn = new BPPBasicBandwidth(bandwidthBits);
+
+                        System.err.println("BPPBasicBandwidth " + bandwidthBits);
+
+                    } else if (arg0.startsWith("-Bn")) {
+                        // Use No Trim Bandwidth utilization estimator
+
+                        if (arg0.equals("-Bn")) {
+                            // no period passed in
+                            bppFn = new BPPNoTrimBandwidth(bandwidthBits);
+
+                            System.err.println("BPPNoTrimBandwidth " + bandwidthBits);
+                        } else {
+                            // check if arg looks like -Bn:period
+                            
+                            // we need to split the arg and grab the period
+                            String regexp = "-Bn:(0.\\d+)";
+                            Pattern pattern = Pattern.compile(regexp);
+                            Matcher matcher = pattern.matcher(arg0);
+                        
+                            if (matcher.matches()) {
+                                String group1 = matcher.group(1);
+
+                                float period = Float.parseFloat(group1);
+
+                                
+                                bppFn = new BPPNoTrimBandwidth(bandwidthBits, period);
+
+                                System.err.println("BPPNoTrimBandwidth " + bandwidthBits + " " + period);
+                                
+
+                            } else {
+                                System.err.println("BPPNoTrimBandwidth: illegal arg. Expected -Bn:period e.g. -Bn:0.2");
+                                System.exit(1);
+                            }
+
+                        }
+
+                    } else if (arg0.startsWith("-Bo")) {
+                        // Use Optimistic Bandwidth utilization estimator
+
+                        // check if arg looks like -Bo:period:extra
+                        
+                        // we need to split the arg and grab the period
+                        String regexp = "-Bo:(0.\\d+):(0.\\d+)";
+                        Pattern pattern = Pattern.compile(regexp);
+                        Matcher matcher = pattern.matcher(arg0);
+                        
+                        if (matcher.matches()) {
+                            String group1 = matcher.group(1);
+
+                            float period = Float.parseFloat(group1);
+
+                            String group2 = matcher.group(2);
+
+                            float extra = Float.parseFloat(group2);
+
+                                
+                            bppFn = new BPPOptimisticBandwidth(bandwidthBits, period, extra);
+
+                            System.err.println("BPPOptimisticBandwidth " + bandwidthBits + " " + period + " " + extra);
+                                
+
+                        } else {
+                            System.err.println("BPPOptimisticBandwidth: illegal arg. Expected -Bo:period:extra e.g. -Bn:0.2:0.1");
+                            System.exit(1);
+                        }
+
+                        
+
+                    }
+                    
                 } else if (arg0.startsWith("-v")) {
                     if (arg0.equals("-v")) {
                         Verbose.level = 1;
@@ -137,9 +217,10 @@ public class BPPForward {
             // Create the forwarder
             forwarder = new BPPForwarder(udpPort, forwardHost, forwardPort, bandwidthBits);
 
-            // Set the BPP Function
-            BPPFn bppFn = new BPPBasicBandwidth(bandwidthBits);
+            // Set the bandwidth of the BPPFn
+            bppFn.setBandwidth(bandwidthBits);
 
+            // Set BPPFn into Forwarder
             forwarder.setBPPFn(bppFn);
 
 
