@@ -173,8 +173,9 @@ public class TCPSend {
             printChunk(chunk, count, total, nalProcessor.getPayloadSize());
 
             // now send it
-            // condition and threshold set to 0
-            sender.sendPayload(packetizer.convert(count, 0, 0, chunk));
+            // command, condition and threshold set to 0
+            // not used here
+            sender.sendPayload(packetizer.convert(count, 0, 0, 0, 0, chunk));
     
             // sleep a bit
             try { 

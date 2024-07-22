@@ -13,7 +13,7 @@ import cc.clayman.h264.NALType;
  * Used as a return value from NALRebuilder next()
  *
  * A way to overcome the fact the Java types are not as powerful as Haskell types.
- * Would prefer:  NAL int NA] | WASHED int | DROPPED int | LOST int
+ * Would prefer:  NAL int | WASHED int | DROPPED int | LOST int
  */
 public class NALResult {
 

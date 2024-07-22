@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.FileInputStream;
 import java.util.List;
 
+import cc.clayman.bpp.BPP;
 import cc.clayman.h264.*;
 import cc.clayman.chunk.*;
 import cc.clayman.processor.*;
@@ -97,7 +98,7 @@ public class TestNetU2 {
 
             // now send it
             // condition and threshold set to 0
-            sender.sendPayload(packetizer.convert(count, 0, 0, chunk));
+            sender.sendPayload(packetizer.convert(count, BPP.Command.WASH, BPP.Condition.LIMITED, 0, BPP.Function.NONE, chunk));
     
             // fix sleep from student code - awaiting proper algorithm
             try { 

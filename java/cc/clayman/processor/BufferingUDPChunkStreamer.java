@@ -108,7 +108,7 @@ public class BufferingUDPChunkStreamer extends UDPChunkStreamer implements Chunk
                 return null;
             } else {
                 // just drain, dont read any more
-                if (Verbose.level >= 2) {
+                if (Verbose.level >= 3) {
                     System.err.println("BufferingUDPChunkStreamer next(): chunk " + list.get(0).getSequenceNumber() + " size = " + list.size());
                 }
             }

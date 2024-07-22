@@ -89,7 +89,11 @@ public class MultiNALRebuilder implements NALRebuilder {
 
         if (! chunkStreamer.hasNext()) {
             // chunkStreamer is finshed
-            return false;
+            if (nalList.size() > 0) {
+                return true;
+            } else {
+                return false;
+            }
         } else {
             return true;
         }
@@ -102,11 +106,23 @@ public class MultiNALRebuilder implements NALRebuilder {
      */
     public NALResult next() {
         if (Verbose.level >= 3) {
-            System.err.println("  next()");
+            System.err.println("  next() " + nalList.size());
         }
 
         if (! chunkStreamer.hasNext()) {
-            return null;
+            if (nalList.size() > 0) {
+                // return next NALResult in the nalList
+                NALResult answer = nalList.get(0);
+
+                // drop it off the list
+                nalList.remove(0);
+
+
+                return answer;
+
+            } else {
+                return null;
+            }
         } else {
             // First we check if the NALList has any content
             // and if there's more to return
@@ -286,6 +302,8 @@ public class MultiNALRebuilder implements NALRebuilder {
         int nalNumber = chunk.getNALNumber();
 
         // we got the expected NAL number
+
+        //System.err.println("MultiNALRebuilder process:  " + nalType + " " + nalCount + " " + nalNumber);
         
         if (nalType == NALType.NONVCL) {
             // got some NONVCL data
@@ -516,6 +534,8 @@ public class MultiNALRebuilder implements NALRebuilder {
 
                     // and build the NAL
                     NAL nal = new NAL(markerSize, single.length, buffer);
+
+                    //System.err.println("RETURN Nal " + nalType + " " + layer + " " + nal); 
 
                     return new NALResult(NALResult.State.NAL, nalType, layer, nal);
                 }

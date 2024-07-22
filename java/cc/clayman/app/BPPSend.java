@@ -4,7 +4,10 @@ import java.nio.ByteBuffer;
 import java.io.IOException;
 import java.io.FileInputStream;
 import java.util.List;
+import java.util.regex.*;
 
+import cc.clayman.bpp.BPP;
+import cc.clayman.bpp.BPPFunction;
 import cc.clayman.h264.*;
 import cc.clayman.chunk.*;
 import cc.clayman.processor.MultiNALProcessor;
@@ -36,6 +39,7 @@ public class BPPSend {
     static int nalsPerFrame = 3;          // no of NALs per frame
     static int videoKbps = 1094;          // the bandwidth of the video file
     static int threshold = 5;             // default threshold
+    static int fnSpec = BPP.Function.NONE;    // No special functions called in network node
 
     static ChunkPacketizer packetizer = null;
     static ChunkSizeCalculator calculator = null;
@@ -151,6 +155,35 @@ public class BPPSend {
                         // Unknown packing option
                     }
 
+
+                } else if (arg0.startsWith("-F")) {
+                    if (arg0.startsWith("-Fr")) {
+                        // RelaxThreshold functions
+                        
+                        // check if arg looks like -Fr:value
+                            
+                        // we need to split the arg and grab the period
+                        String regexp = "-Fr:(\\d)";
+                        Pattern pattern = Pattern.compile(regexp);
+                        Matcher matcher = pattern.matcher(arg0);
+                        
+                        if (matcher.matches()) {
+                            String group1 = matcher.group(1);
+
+                            int arg = Integer.parseInt(group1);
+
+                            fnSpec = new BPPFunction.RelaxThreshold(arg).representation();
+
+                        } else {
+                            System.err.println("Function spec: illegal arg. Expected -Fr:arg e.g. -Fr:1");
+                            System.exit(1);
+                        }
+                    } else {
+                        System.err.println("Function spec: illegal arg. Expected -Fr:1");
+                        System.exit(1);
+
+                    }
+                    
                 } else if (arg0.startsWith("-v")) {
                     if (arg0.equals("-v")) {
                         Verbose.level = 1;
@@ -269,14 +302,13 @@ public class BPPSend {
             //System.err.printf("%-6d", count);
             //infoChunk(chunk, count, total);
 
-            // Condition: packetsPerSecond
-            int condition = packetsPerSecond;
+            // Condition: depends on the command
 
-            // Threshold: 0 - 255
+            // Threshold: 0 - 15
             // This is used by the network node to drop chunks
             
             // now send it
-            sender.sendPayload(packetizer.convert(count, condition, threshold, chunk));
+            sender.sendPayload(packetizer.convert(count, BPP.Command.WASH, BPP.Condition.LIMITEDFN, threshold, fnSpec, chunk));
 
             // sleep a bit
             try {

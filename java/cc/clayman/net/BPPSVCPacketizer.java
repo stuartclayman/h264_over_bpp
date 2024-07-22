@@ -11,6 +11,7 @@ import cc.clayman.chunk.ChunkContent;
 import cc.clayman.h264.NALType;
 import cc.clayman.net.IP;
 import cc.clayman.bpp.BPP;
+import cc.clayman.bpp.BPPPacket;
 import cc.clayman.util.Verbose;
 
 /**
@@ -25,6 +26,9 @@ public class BPPSVCPacketizer implements ChunkPacketizer {
     final int headerByteCount;
 
     int count = 0;
+
+    // V1 packets
+    final static int version = 1;
 
     /**
      * Create a BPPSVCPacketizer given a chunkCount for each packet,
@@ -66,7 +70,7 @@ public class BPPSVCPacketizer implements ChunkPacketizer {
      * Convert a SVCChunkInfo into byte[]
      * @throws UnsupportedOperationException if the Chunk is too big to fit in a packet
      */
-    public byte[] convert(int sequence, int condition, int threshold, ChunkInfo svcChunk) throws UnsupportedOperationException {
+    public byte[] convert(int sequence, int command, int condition, int threshold, int fnSpec, ChunkInfo svcChunk) throws UnsupportedOperationException {
         SVCChunkInfo chunk = (SVCChunkInfo)svcChunk;
         
         count++;
@@ -100,125 +104,53 @@ public class BPPSVCPacketizer implements ChunkPacketizer {
             // Get NAL type
             NALType type = chunk.getNALType();
 
-            // Now build the 32 bit BPP Header + 24 bit Command Block
+            // Now build  BPP Header + Command Block
+            BPP.BPPHeader header = new BPP.BPPHeader();
 
-            // 32 bits for BPP header
-            final int version = 0x0C;
-            packetBytes[0] = (byte)((version << 4) & 0xFF);
-            packetBytes[1] = (byte)(0x00);
-            packetBytes[2] = (byte)((chunkCount & 0x1F) << 3);
-            packetBytes[3] = (byte)(0x00);
+            // fill header with values
+            header.version = version;
+            header.chunkCount = chunkCount;
+            
+            bufPos = BPPPacket.writeHeader(packetBytes, header);
 
-            // increase bufPos
-            bufPos += BPP.BLOCK_HEADER_SIZE;
+            // Command Block
+            BPP.CommandBlock commandBlock = new BPP.CommandBlock();
 
-
-            // 24 bits for Command Block
-            // build int, then pack into bytes
-            int commandBlock = 0;
-
-            // Command: 00001 = PacketWash, 00011= drop
-            int command = 0x00001;
+            // fill commandblock with values
+            // Command: is passed in
+            commandBlock.command = command;
+            
             // Condition: is passed in
+            commandBlock.condition = condition;
+            
+            // Function: awaiting implementation
+            commandBlock.function = fnSpec;
 
-            // Threshold: 0 - 255 is passed in
+            // Threshold: 0 - 15 is passed in
+            commandBlock.threshold = threshold;
+
+            // Sequence
+            commandBlock.sequence = sequence;
             
-            commandBlock = (command << 19) | ((byte)(condition & 0x000000FF) << 11) | ((byte)(threshold & 0x000000FF) << 3);
             
-            packetBytes[4] = (byte)(((commandBlock & 0x00FF0000) >> 16) & 0xFF);
-            packetBytes[5] = (byte)(((commandBlock & 0x0000FF00) >> 8) & 0xFF);
-            packetBytes[6] = (byte)(((commandBlock & 0x000000FF) >> 0) & 0xFF);
+            bufPos = BPPPacket.writeCommandBlock(packetBytes, bufPos, commandBlock);
 
             if (Verbose.level >= 2) {
                 System.err.println("Chunk data: nalNo = " + nalNo + " nalCount = " + nalCount);
             }
 
-            // Add Sequence no
-            packetBytes[7] = (byte)(((sequence & 0xFF000000) >> 24) & 0xFF);
-            packetBytes[8] = (byte)(((sequence & 0x00FF0000) >> 16) & 0xFF);
-            packetBytes[9] = (byte)(((sequence & 0x0000FF00) >> 8) & 0xFF);
-            packetBytes[10] = (byte)(((sequence & 0x000000FF) >> 0) & 0xFF);
-            
-            // increase bufPos
-            bufPos += BPP.COMMAND_BLOCK_SIZE;
 
             if (Verbose.level >= 2) {
-                System.err.printf(" %-6d ver: 0x%04X seq: %d chunkCount: %d command: 0x%05X condition: %d threshold: %d\n", count, version, sequence, chunkCount, command, condition, threshold);
+                System.err.printf(" %-6d ver: 0x%04X seq: %d chunkCount: %d command: 0x%05X condition: 0x%03X function 0x%05X threshold: %d\n", count, version, sequence, chunkCount, command, condition, commandBlock.function, threshold);
             }
-        
 
-            // Visit the Content
-            for (int c=0; c<content.length; c++) {
-                
-                int contentSize = content[c].offset();
+            // Convert the ChunkInfo to a BPP.MetadataBlock
+            BPP.MetadataBlock metadataBlock = chunkInfoToMetadataBlock(chunk);
 
-                // get fragment from content
-                int fragment = content[c].getFragmentationNumber();
-                boolean isLastFragment = content[c].isLastFragment();
+            // and write into the packet
+            bufPos = BPPPacket.writeMetadataBlock(packetBytes, bufPos, metadataBlock);
 
-                // Add per-chunk Metadata Block - 48 bits / 6 bytes 
-                //  -  22 bits (OFFi [5 bits (NAL Count) + 12 bits (NAL No) + 5 bits (Frag No)])
-                //   + 14 bits (CSi) + 4 bits (SIGi) + 1 bit (OFi) + 1 bit (FFi)
-                //   +  1 bit (VCL/NONVCL) + 5 bits (PAD)
-                //
-                // NAL No is limited to 12 bits - max 4095 - so can wrap
-                // Frag No is limited to 5 bits - max 31 - so can wrap
-                
-                int offI = 0;
-                int csI = 0;
-                // significance probably calculated on-the-fly, from the NAL
-                int sigI = content[c].getSignificanceValue();
-                
             
-                offI = ((nalCount & 0x0000001F) << 17) | ((nalNo & 0x00000FFF) << 5) | ((fragment & 0x0000001F) << 0);
-
-                //System.err.printf(" offI = %d  0x%5X \n", offI, offI);
-
-                // chunk size - 14 bits
-                csI = (contentSize & 0x00003FFF);
-
-                // now build the next 6 bytes
-                
-                // need 8 bits: 14 - 21 of offI
-                packetBytes[bufPos] = (byte)(((offI & 0x003FC000) >> 14) & 0xFF);
-                // need 8 bits: 6 - 13 of offI
-                packetBytes[bufPos+1] = (byte)(((offI & 0x00003FC0) >> 6) & 0xFF);
-                // need 6 bits: 0 - 5 of offI
-                packetBytes[bufPos+2] = (byte)((((offI & 0x0000003F) >> 0) << 2) & 0xFF);
-
-
-                // need 2 bits: 12 - 13 of csI
-                packetBytes[bufPos+2] |= (byte)(((csI & 0x00003000) >> 12) & 0x03);
-                // need 8 bits: 4 - 11 of csI
-                packetBytes[bufPos+3] = (byte)(((csI &  0x00000FF0) >> 4) & 0xFF);
-                // need 4 bits: 0 - 3 of csI
-                packetBytes[bufPos+4] = (byte)((((csI &  0x0000000F) >> 0) << 4) & 0xFF);
-
-                // need 4 bits: 0 - 3 of sigI
-                packetBytes[bufPos+4] |= (byte)(((sigI & 0x0000000F) >> 0) & 0x0F);
-
-                // need 1 bit for OFi
-                final boolean ofI = false;
-                packetBytes[bufPos+5] = (byte)(((ofI ? 1 : 0)<< 7) & 0xFF);
-                // need 1 bit for FFi
-                packetBytes[bufPos+5] |= (byte)(((isLastFragment ? 1 : 0) << 6) & 0xFF);
-                // need 1 bit for VCL/NONVCL
-                packetBytes[bufPos+5] |= (byte)((type.getValue() & 0x01) << 5);
-
-                // need 5 bits of PAD
-
-                // increase bufPos
-                bufPos += BPP.METADATA_BLOCK_SIZE;
-
-                
-                if (Verbose.level >= 2) {
-                    System.err.printf("  %-3dOFFi: nalNo: %d nalCount: %d fragment: %d \n", (c+1), nalNo, nalCount, fragment);
-                    System.err.printf("     CSi: contentSize: %d  SIGi:  %d\n", csI, sigI);
-                    System.err.printf("     OFi: %s FFi: %s  NAL: %s\n", ofI, isLastFragment, type);
-                }
-
-            }
-
             // Visit the Content again, and add the Content
             for (int c=0; c<content.length; c++) {
                 
@@ -241,5 +173,66 @@ public class BPPSVCPacketizer implements ChunkPacketizer {
             return packetBytes;
         }
         
+    }
+
+
+    private BPP.MetadataBlock chunkInfoToMetadataBlock(ChunkInfo svcChunk) {
+        SVCChunkInfo chunk = (SVCChunkInfo)svcChunk;
+        
+        ChunkContent[] content = chunk.getChunkContent();
+
+        //System.err.println("content.length = " + content.length);
+
+        // Get the NAL number
+        int nalNo = chunk.getNALNumber();
+
+        // Get the NAL count
+        int nalCount = chunk.getNALCount();
+
+        // Get NAL type
+        int type = chunk.getNALType().getValue();
+
+
+        BPP.MetadataBlock mb = new BPP.MetadataBlock();
+        
+        // Allocate arrays for data in MetadataBlock.
+        // Might be quicker to reuse existing arrays and clear them.
+        int chunkCount = content.length;
+        mb.chunkCount = chunkCount;
+        mb.contentSizes = new int[chunkCount];
+        mb.significance = new int[chunkCount];
+        mb.fragments = new int[chunkCount];
+        mb.lastFragment = new boolean[chunkCount];
+        mb.isDropped = new boolean[chunkCount];
+        mb.nalCount = new int[chunkCount];
+        mb.nalNo = new int[chunkCount];
+        mb.type = new byte[chunkCount];
+
+        
+        
+        // Visit the Content
+        for (int c=0; c<content.length; c++) {
+                
+
+            mb.type[c] = (byte)type;
+            mb.nalCount[c] = nalCount;
+            mb.nalNo[c] = nalNo;
+            
+            // content size
+            mb.contentSizes[c] = content[c].offset();
+
+            // get fragment from content
+            mb.fragments[c] = content[c].getFragmentationNumber();
+            mb.lastFragment[c] = content[c].isLastFragment();
+
+            // significance
+            mb.significance[c] = content[c].getSignificanceValue();
+
+            // dropped
+            mb.isDropped[c] = false;
+        }
+
+        
+        return mb;
     }
 }

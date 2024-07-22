@@ -64,7 +64,7 @@ public class SimpleSVCPacketizer implements ChunkPacketizer {
      * Convert a SVCChunkInfo into byte[]
      * @throws UnsupportedOperationException if the Chunk is too big to fit in a packet
      */
-    public byte[] convert(int sequence, int condition, int threshold, ChunkInfo svcChunk) throws UnsupportedOperationException {
+    public byte[] convert(int sequence, int command, int condition, int threshold, int fnSpec, ChunkInfo svcChunk) throws UnsupportedOperationException {
         SVCChunkInfo chunk = (SVCChunkInfo)svcChunk;
 
         // How many bytes will the packet really need

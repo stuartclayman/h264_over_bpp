@@ -2,6 +2,7 @@ package netfn.bpp;
 
 import java.net.DatagramPacket;
 import cc.clayman.util.Verbose;
+import java.util.Optional;
 
 /**
  * A NetFn that does some BPP processing
@@ -18,7 +19,7 @@ public interface BPPFn  {
     /**
      * Process a packet, and possibly trim the contents.
      */
-    public byte[] process(int count, DatagramPacket packet) throws UnsupportedOperationException;
+    public Optional<byte[]> process(int count, DatagramPacket packet) throws UnsupportedOperationException;
 
     /**
      * Get the bandwidth

@@ -108,15 +108,16 @@ public class BPPForward {
                     }
 
                 } else if (arg0.startsWith("-B")) {
-                    // BPPFns
+                    // BPP Bandwidth evaluators
+                    
                     if (arg0.equals("-Bb")) {
-                        // Use Basic Bandwidth utilization estimator
+                        // Use Basic Bandwidth utilization evaluator
                         bppFn = new BPPBasicBandwidth(bandwidthBits);
 
                         System.err.println("BPPBasicBandwidth " + bandwidthBits);
 
                     } else if (arg0.startsWith("-Bn")) {
-                        // Use No Trim Bandwidth utilization estimator
+                        // Use No Trim Bandwidth utilization evaluator
 
                         if (arg0.equals("-Bn")) {
                             // no period passed in
@@ -150,7 +151,7 @@ public class BPPForward {
                         }
 
                     } else if (arg0.startsWith("-Bo")) {
-                        // Use Optimistic Bandwidth utilization estimator
+                        // Use Optimistic Bandwidth utilization evaluator
 
                         // check if arg looks like -Bo:period:extra
                         

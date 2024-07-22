@@ -8,6 +8,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.net.DatagramPacket;
 import java.net.UnknownHostException;
+import java.util.Optional;
 
 import cc.clayman.h264.*;
 import cc.clayman.chunk.*;
@@ -124,6 +125,8 @@ public class BPPForwarder implements ManagementListener {
 
         if (newVal == null) {
             // nothing to send
+            // so packet is dropped
+             System.out.printf("DROPPED:  %8d%10d\n", count, totalOut);
         } else {
             // send packet
             int newLength = newVal.getLength();
@@ -158,20 +161,24 @@ public class BPPForwarder implements ManagementListener {
             volumeInLastSecond += datagram.getLength();
                 
             // check if a BPPFn is set
-            byte[] result = null;
+            Optional<byte[]> result = null;
             
             if (bppFn != null) {
                 // do the processing and conversion
                 result = bppFn.process(count, datagram);
             } else {
                 // no bpp fn, so just forward
-                result = null;
+                result = Optional.empty();
             }
             
 
             // now patch up the datagram to have modified contents
             // or forward current datagram if result is null
             if (result == null) {
+                // we got a null - so drop the packet
+                return null;
+                
+            } else if (! result.isPresent()) {
                 // nothnig to do but forward the datagram
 
                 // increase volumeOut
@@ -183,11 +190,13 @@ public class BPPForwarder implements ManagementListener {
 
             } else {
                 // we have new payload
+                byte[] content = result.get();
+                
                 if (Verbose.level >= 3) {
-                    System.err.println("datagram length = " + datagram.getLength() + " newPayload length = " + result.length);
+                    System.err.println("datagram length = " + datagram.getLength() + " newPayload length = " + content.length);
                 }
                     
-                DatagramPacket newDatagram = new DatagramPacket(result, result.length);
+                DatagramPacket newDatagram = new DatagramPacket(content, content.length);
                 newDatagram.setAddress(datagram.getAddress());
                 newDatagram.setPort(datagram.getPort());
 

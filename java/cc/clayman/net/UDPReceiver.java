@@ -288,7 +288,7 @@ public class UDPReceiver implements Runnable {
                 return packet;
 
             } catch (InterruptedException ie) {
-                if (Verbose.level >= 0) {
+                if (Verbose.level >= 2) {
                     System.err.println("UDPReceiver: InterruptedException " + ie);
                 }
                 return null;

@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.net.DatagramPacket;
+import java.util.Optional;
 
 import cc.clayman.h264.*;
 import cc.clayman.chunk.*;
@@ -182,8 +183,10 @@ public class BPPRecv {
         
         System.out.printf("IN:   %8d%6d%10d\n", count, length, totalIn);
 
-        byte[] newVal = bppFn.process(count, packet);
+        Optional<byte[]> result = bppFn.process(count, packet);
 
+        byte[] newVal = result.get();
+        
         int newLength = newVal.length;
         totalOut += newLength;
 

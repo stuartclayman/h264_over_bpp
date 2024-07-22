@@ -3,22 +3,28 @@ package netfn.bpp;
 import java.net.DatagramPacket;
 import cc.clayman.net.IP;
 import cc.clayman.bpp.BPP;
+import cc.clayman.bpp.BPPPacket;
+import cc.clayman.bpp.BPPFunction;
 import cc.clayman.h264.NALType;
 import cc.clayman.util.ANSI;
 import cc.clayman.util.Verbose;
+import java.util.Optional;
 
 /**
  * A NetFn that does some BPP processing 
  *
- * There are 4 main phases: (i)
- * getting Timing information when a packet arrives; (ii) doing Pre
- * processing of packet to get the packet size and the determining the
- * ideal number of bytes to send at the particular offset into a
- * second; (iii) to Check the current second to see if a second
- * boundary has been crossed; and (iv) the Decision making and
- * forwarding which processes each packet.
+ * There are 4 main phases:
+ * (i) getting Timing information when a packet arrives;
+ * (ii) doing pre-processing of packet to get the packet size and determining
+ * the ideal number of bytes to send at the particular offset into a second;
+ * (iii) to Check the current second to see if a second
+ * boundary has been crossed; and
+ * (iv) the Decision making and forwarding which processes each packet.
 */
 public abstract class AbstractBPPFn implements BPPFn {
+
+    // Amount of bytes for running a function when the bandwidth is limited
+    public final static int ENOUGH_FOR_EVALUATION = 100;
     
     // Available bandwidth (in bytes)
     int availableBandwidth = 0;
@@ -31,19 +37,11 @@ public abstract class AbstractBPPFn implements BPPFn {
 
 
     // Datagram contents
-    int command = 0;
-    int condition = 0;
-    int threshold = 0;
-    int sequence = 0;
-
-    int [] contentSizes = null;
+    BPP.BPPHeader packetHeader = null;
+    BPP.CommandBlock packetCommandBlock = null;
+    BPP.MetadataBlock packetMetadataBlock = null;
+    
     int [] contentStartPos = null;
-    int [] significance = null;
-    int [] fragments = null;
-    boolean [] lastFragment = null;
-    boolean [] isDropped = null;
-    int nalCount = 0;
-    int nalNo = 0;
     NALType nalType = null;
 
     // counts
@@ -55,6 +53,7 @@ public abstract class AbstractBPPFn implements BPPFn {
     int recvThisSec = 0;   // amount recvd this second
     int sentThisSec = 0;   // amount sent this second
 
+    int idealSendThisSec = 0;   // the ideal amount to send at the current offset in the second
 
     // timing
     int seconds = 0;       // no of seconds
@@ -92,7 +91,7 @@ public abstract class AbstractBPPFn implements BPPFn {
      * ▷ Decision making and forwarding
      * @return a byte[] which is the content to forward on
      */
-    public byte[] process(int count, DatagramPacket packet) throws UnsupportedOperationException {
+    public Optional<byte[]> process(int count, DatagramPacket packet) throws UnsupportedOperationException {
         this.count = count;
         
         // ▷ Timing
@@ -105,25 +104,216 @@ public abstract class AbstractBPPFn implements BPPFn {
         bppCheckTiming();
         
         // ▷ Decision making and forwarding
-        byte[] result = bppTrim(behind, packet);
+        Optional<byte[]> result = bppConditionAction(behind, packet);
 
-        return result;        
+        return result;
     }
 
     // ▷ Timing
-    public abstract void bppDoTiming();
+    public void bppDoTiming() {
+        countThisSec++;
+        
+        // timing
+        now = System.currentTimeMillis();
+        // Millisecond offset between now and timeStart 
+        timeOffset = now - timeStart;
+        // What is the offset in this second
+        secondOffset = (float)timeOffset / 1000;
+    }
+        
         
     // ▷ Pre processing of packet
     // @return how far below the ideal bandwidth is this packet
-    public abstract int bppPre(DatagramPacket packet);
+    public int bppPre(DatagramPacket packet) {
+        // check bandwidth is enough
+        payload = packet.getData();
+        packetLength = packet.getLength(); 
+
+        totalIn += packetLength;
+        recvThisSec += packetLength;
+
+
+        int behind = calculateBelow();
+
+        if (Verbose.level >= 2) {
+            System.err.printf("BPPFn: " + count + " secondOffset: " + secondOffset + " countThisSec " + countThisSec +  " recvThisSec " + recvThisSec + " sentThisSec " + sentThisSec + " idealSendThisSec " + idealSendThisSec + " behind " + behind);
+        }
+
+        return behind;
+    }
         
     // ▷ Check current second
-    public abstract void bppCheckTiming();
+    public void bppCheckTiming() {
+        if (timeOffset >= 1000) {
+            // we crossed a second boundary
+            seconds++;
+            timeStart = now;
+            countThisSec = 0;
+            recvThisSec = 0;
+            sentThisSec = 0;
+            secondOffset = 0;
+        }
+
+    }
         
     // ▷ Decision making and forwarding
-    public abstract byte[] bppTrim(int below, DatagramPacket packet);
+    public Optional<byte[]> bppConditionAction(int behind, DatagramPacket packet) {
+        // Check Packet
+        
+        // Look into the packet headers to get command and condition
+        unpackDatagramHeaders();
 
+        int command = packetCommandBlock.command;
+        int condition = packetCommandBlock.condition;
+
+        // and check the Command
+        if (command == BPP.Command.WASH) {
+            // it's a WASH command
+
+            if (condition == BPP.Condition.NEVER) {
+                // Never do washing
+                return Optional.empty();
+
+            } else {
+                // Condition is LIMITED, LIMITEDFN, or ALWAYS
+
+                // Calculate amount to trim
+                int packetTrimLevel = calculateTrimAmount(behind);
+            
+                if (packetTrimLevel > 0) {
+                    // If we need to trim something, we need to look at the content
+                    unpackDatagramContent();
+
+                    int trimmedAmount = trimContent(packetTrimLevel);
+
+                    int size = packetLength - trimmedAmount;
+
+                    // check if we didn't trim enough
+                    // and there is a need for more than 100 bytes
+                    if (trimmedAmount < packetTrimLevel) {
+                        if (packetTrimLevel - trimmedAmount > ENOUGH_FOR_EVALUATION) {
+                            System.err.printf("    MORE Threshold %d TRIM_LEVEL %d TRIM: %d NEED %d \n", packetCommandBlock.threshold, packetTrimLevel, trimmedAmount, (packetTrimLevel - trimmedAmount) );
+
+                            // Check if Condition is LIMITEDFN
+                            // i.e run a Function when the bandwidth is limited
+                            if (condition == BPP.Condition.LIMITEDFN) {
+                                // we didn't trim enough
+                                BPPFunction fn = BPPFunction.convert(packetCommandBlock.function);
+                                //System.err.println("Run " + fn + " arg " + fn.getArg());
+
+                                // arrange to relax the threshold
+                                int oldTrimmedSize = size;
+
+                                packetCommandBlock.threshold -= fn.getArg();
+                        
+                                //System.err.printf("    MORE Threshold %d  \n", packetCommandBlock.threshold);
+                            
+                                // try and trim some more
+                                // subtract amount already trimmed
+                                int newTrimLevel = packetTrimLevel - trimmedAmount;
+                                int nextTrimmedAmount = trimContent(newTrimLevel);
+
+                                System.err.printf("    MORE nextTrimmedAmount %d  \n", nextTrimmedAmount);
+
+                                if (nextTrimmedAmount > 0) {
+                                    // yes some more was trimmed
+                                    // so subtract that from the size
+                                    size -= nextTrimmedAmount;
+
+                                    System.err.printf("SUCCESS TRIM_LEVEL %d TRIM: %d NEED %d \n", packetTrimLevel, trimmedAmount + nextTrimmedAmount, (packetTrimLevel - trimmedAmount - nextTrimmedAmount) );
+                                }
+
+                            }
+                        } else {
+                            System.err.printf("    DONT TRIM %d\n", (packetTrimLevel - trimmedAmount) );
+                        }
+                    }
+                        
+                    totalOut += size;
+                    sentThisSec += size;
+
+                    // Now rebuild the packet payload, from the original packet
+                    byte[] newPayload = packContent();
+
+                    return Optional.of(newPayload);
+
+                } else {
+                    // Get the network function to forward the packet
+                    int size = packetLength;
+                    totalOut += size;
+                    sentThisSec += size;
+                    
+                    return Optional.empty();
+                }
+
+            }
+
+        } else if (command == BPP.Command.NONE) {
+            // do no processing
+            // and forward it
+            return Optional.empty();
+
+        } else if (command == BPP.Command.DROP) {
+            // drop the packet
+            // null tells the caller to drop
+            return null;
+
+        } else {
+            // We got a bad Command
+            System.err.printf("BPPFn: Unknown BPP Command: %s\n" + command);
+
+            // Just forward the packet
+            return Optional.empty();
+        }
+        
+    }
+
+
+    // Calculate how far below the ideal we are
+    // A negative value means we are over the ideal
+    public int calculateBelow() {
+        // The ideal no of bytes to send at this offset into a second 
+        idealSendThisSec = (int) (availableBandwidth * secondOffset);
+
+        // always allow a full packet
+        if (idealSendThisSec < IP.BASIC_PACKET_SIZE) {
+            idealSendThisSec = IP.BASIC_PACKET_SIZE;
+        }
+        
+        // How far behind the ideal are we
+        int behind = idealSendThisSec - sentThisSec;
+
+        //if (Verbose.level >= 1) {
+        //    System.err.printf("  BEHIND " + behind + "\n");
+        //}
+
+
+        return behind;
+    }
     
+    // Calculate how much should be trimmed from the packet,
+    // given how far behind or ahead we are
+    public int calculateTrimAmount(int behind) {
+
+        // work out packetTrimLevel
+        int packetTrimLevel = 0;
+
+        if (behind > 0) {
+            // fine - we are behind the ideal send amount
+            packetTrimLevel = 0;
+            if (Verbose.level >= 2) {
+                System.err.printf(" NO_TRIM\n");
+            }
+        } else {
+            // we are ahead of ideal
+            packetTrimLevel = -behind;
+            if (Verbose.level >= 1) {
+                System.err.printf("  YES_TRIM " + packetTrimLevel + "\n");
+            }
+        }
+
+        return packetTrimLevel;
+    }
     
     // Get the bandwidth in bits
     public int getBandwidth() {
@@ -137,14 +327,7 @@ public abstract class AbstractBPPFn implements BPPFn {
         this.availableBandwidth = bitsPerSecond >> 3;
     }    
 
-    
-    /**
-     * Set no of packetsPerSecond
-     */
-    //public void setPacketsPerSecond(int val) {
-    //    packetsPerSecond = val;
-    //}
-            
+                
     // convert float 0.8 Mbps -> 838860 bits
     protected int convertBandwidth(float bb) {
         return (int)(bb * 1024 * 1024);
@@ -155,7 +338,7 @@ public abstract class AbstractBPPFn implements BPPFn {
     /**
      * Unpack  the DatagramPacket into objects
      */
-    protected void unpackDatagramHeaders(DatagramPacket packet) {
+    protected void unpackDatagramHeaders() {
         
         byte[] packetBytes = payload;
 
@@ -163,51 +346,27 @@ public abstract class AbstractBPPFn implements BPPFn {
         int bufPos = 0;
         
         // Now extract BPP header - 32 bits for BPP
-        byte b0 = packetBytes[0];
-        byte b1 = packetBytes[1];
-        byte b2 = packetBytes[2];
-        byte b3 = packetBytes[3];
+        BPP.BPPHeader header = new BPP.BPPHeader();
 
-        bufPos += BPP.BLOCK_HEADER_SIZE;
-
-        // Check version pattern
-        int version = (b0 & 0xF0) >> 4;
-        chunkCount = (b2 & 0xF8) >> 3;
+        bufPos = BPPPacket.readHeader(packetBytes, header);
+        
+        packetHeader = header;
+        
 
         //System.err.printf(" 0x%02X 0x%02X 0x%02X 0x%02X \n",  packetBytes[0], packetBytes[1], packetBytes[2], packetBytes[3]);
 
         // Now extract the Command Block
-        byte b4 = packetBytes[4];
-        byte b5 = packetBytes[5];
-        byte b6 = packetBytes[6];
+        BPP.CommandBlock commandBlock = new BPP.CommandBlock();
 
-        // Get the Sequence No bytes
-        byte b7 = packetBytes[7];
-        byte b8 = packetBytes[8];
-        byte b9 = packetBytes[9];
-        byte b10 = packetBytes[10];
+        bufPos = BPPPacket.readCommandBlock(packetBytes, bufPos, commandBlock);
         
-        bufPos += BPP.COMMAND_BLOCK_SIZE;
-        
-
-        // command is top 5 bits of b4
-        command = (b4 & 0xFC) >> 3;
-
-        // condition is bottom 3 bits of b4 and top 5 bits of b5
-        condition = ((b4 & 0x07) << 5) | (b5 & 0xFC) >> 3;
-
-        // threshold is bottom 3 bits of b5 and top 5 bits of b6
-        threshold = ((b5 & 0x07) << 5) | (b6 & 0xFC) >> 3;
-        
-        // sequence no
-        sequence = ((b7 & 0xFF) << 24) | ((b8  & 0xFF) << 16) | ((b9  & 0xFF) << 8) | (b10  & 0xFF) ;
-        
+        packetCommandBlock = commandBlock;
 
         //System.err.printf("%-6d ver: 0x%04X chunkCount: %d command: 0x%05X condition: %d threshold: %d\n", count, version, chunkCount, command, condition, threshold);
     }
 
     
-    protected void unpackDatagramContent(DatagramPacket packet) {
+    protected void unpackDatagramContent() {
         
         byte[] packetBytes = payload;
 
@@ -218,92 +377,44 @@ public abstract class AbstractBPPFn implements BPPFn {
         // skip the Command Block
         bufPos += BPP.COMMAND_BLOCK_SIZE;
 
+
         // Visit each ChunkContent in the packet
         // and try to get the data out
-        contentSizes = new int[chunkCount];
-        contentStartPos = new int[chunkCount];
-        significance = new int[chunkCount];
-        fragments = new int[chunkCount];
-        lastFragment = new boolean[chunkCount];
-        isDropped = new boolean[chunkCount];
-
+        BPP.MetadataBlock mb = new BPP.MetadataBlock();
         
-        for (int c=0; c<chunkCount; c++) {
+        // Allocate arrays for data in MetadataBlock.
+        // Might be quicker to reuse existing arrays and clear them.
+        int chunkCount = packetHeader.chunkCount;
+        mb.chunkCount = chunkCount;
+        mb.contentSizes = new int[chunkCount];
+        mb.significance = new int[chunkCount];
+        mb.fragments = new int[chunkCount];
+        mb.lastFragment = new boolean[chunkCount];
+        mb.isDropped = new boolean[chunkCount];
+        mb.nalCount = new int[chunkCount];
+        mb.nalNo = new int[chunkCount];
+        mb.type = new byte[chunkCount];
+
+        // Read the MetadataBlock
+        bufPos = BPPPacket.readMetadataBlock(packetBytes, bufPos, mb);
+
+        packetMetadataBlock = mb;
         
-            // Find per-chunk Metadata Block - 48 bits / 6 bytes 
-            //  -  22 bits (OFFi [5 bits (Chunk Offset) + 12 bits (Source Frame No) + 5 bits (Frag No)])
-            //   + 14 bits (CSi) + 4 bits (SIGi) + 1 bit (OFi) + 1 bit (FFi)
-            //   + 6 bits (PAD)
-                
-            int offI = 0;
-            int csI = 0;
-            int sigI = 0;
-            int fragment = 0;
-            boolean ofI = false;
-            boolean ffI = false;
-
-            // first get bytes into structural elements
-
-            // OFFi
-            // 8 bits
-            offI =  ((packetBytes[bufPos] & 0xFF) << 14);
-            // 8 bits
-            offI |= ((packetBytes[bufPos+1] & 0xFF) << 6);
-            // 6 bits
-            offI |= ((packetBytes[bufPos+2] & 0xFC) >> 2);
-
-            //System.err.printf(" offI = %d  0x%5X \n", offI, offI);
-            
-            // CSi
-            // 2 bits
-            csI = ((packetBytes[bufPos+2] & 0x3) << 12);
-            // 8 bits
-            csI |= ((packetBytes[bufPos+3] & 0xFF) << 4);
-            // 4 bits
-            csI |= ((packetBytes[bufPos+4] & 0xF0) >> 4);
-
-            // SIGi
-            sigI = (packetBytes[bufPos+4] & 0x0F);
-
-            ofI = (packetBytes[bufPos+5] & 0x80) == 0 ? false : true;
-            ffI = (packetBytes[bufPos+5] & 0x40) == 0 ? false : true;
-
-            int type = ((packetBytes[bufPos+5] & 0x20) >> 5) ;
-
-            bufPos += BPP.METADATA_BLOCK_SIZE;
-            
-            // now unpack values
-            nalCount = (offI >> 17) & 0x0000001F;
-            nalNo = (offI >> 5) & 0x00000FFF;
-            fragment = (offI & 0x0000001F);
-        
-            if (type == 0 || type == 1)  {
-                nalType = (type == 0 ? NALType.VCL : NALType.NONVCL);
-            } else {
-                throw new Error("Invalid NALType number " + type);
-            }
-            
-            
-            //System.err.printf("  %-3dOFFi: nalNo: %d nalCount: %d fragment: %d \n", (c+1), nalNo, nalCount, fragment);
-            //System.err.printf("     CSi: contentSize: %d  SIGi:  %d\n", csI, sigI);
-            //System.err.printf("     OFi: %s  FFi: %s  NAL: %s\n", ofI, ffI, nalType);
-
-            // save the contentSize
-            contentSizes[c] = csI;
-
-            // fragmentation info
-            fragments[c] = fragment;
-            lastFragment[c] = ffI;
-
-            // significance
-            significance[c] = sigI;
-
-            // dropped
-            isDropped[c] = ofI;
+        // check type, nalCount, and nalNo
+        byte type = mb.type[chunkCount-1];
+        if (type == 0 || type == 1)  {
+            nalType = (type == 0 ? NALType.VCL : NALType.NONVCL);
+        } else {
+            throw new Error("Invalid NALType number " + type);
         }
+
+        int nalCount = mb.nalCount[chunkCount-1];
+        int nalNo = mb.nalNo[chunkCount-1];
+
 
         // Save start point of each content
         // bufPos now should be at first content
+        contentStartPos = new int[chunkCount];
 
         for (int c=0; c<chunkCount; c++) {
             contentStartPos[c] = bufPos;
@@ -313,44 +424,47 @@ public abstract class AbstractBPPFn implements BPPFn {
                 //System.err.printf(" 0x%02X 0x%02X 0x%02X 0x%02X \n",  packetBytes[bufPos+4], packetBytes[bufPos+5], packetBytes[bufPos+6], packetBytes[bufPos+7]);
             }
             
-            bufPos += contentSizes[c];
+            bufPos += packetMetadataBlock.contentSizes[c];
         }        
 
     }
 
 
     /**
-     * Drop some content chunks
+     * Trim some content chunks
      */
-    protected int dropContent(int packetDropLevel) {
+    protected int trimContent(int packetTrimLevel) {
         if (Verbose.level >= 3) {
-            System.err.println("BPPUnpack: " + count + " Trim needed of " + packetDropLevel);
+            System.err.println("BPPFn: " + count + " Trim needed of " + packetTrimLevel);
         }
             
-        int dropped = 0;
+        int trimmed = 0;
             
-        // now we try to drop some chunk content
+        // now we try to trim some chunk content
         // try from the highest to the lowest
-        for (int c=chunkCount-1; c>=0; c--) {
+        // TODO: go from least significance to highest significance
+        // instead of chunk position
+        for (int c=packetMetadataBlock.chunkCount-1; c>=0; c--) {
             if (Verbose.level >= 3) {
-                System.err.println("isDropped[" + c + "] = " + isDropped[c]);
+                System.err.println("isDropped[" + c + "] = " + packetMetadataBlock.isDropped[c]);
             }
 
             // can we delete this content
             
-            if (significance[c] > threshold) {
+            if (packetMetadataBlock.significance[c] > packetCommandBlock.threshold && !packetMetadataBlock.isDropped[c]) {
                 // it's a candidate
-                // mark it as dropped
-                isDropped[c] = true;
-                // update the dropped count
-                dropped += contentSizes[c];
+                // mark it as trimmed
+                packetMetadataBlock.isDropped[c] = true;
+                
+                // update the trimmed count
+                trimmed += packetMetadataBlock.contentSizes[c];
 
                 if (Verbose.level >= 3) {
-                    System.err.println("BPPUnpack: dropped chunk " + c + " significance " + significance[c] + " size: " + contentSizes[c]);
+                    System.err.println("BPPFn: trimmed chunk " + c + " significance " + packetMetadataBlock.significance[c] + " size: " + packetMetadataBlock.contentSizes[c]);
                 }
             }
 
-            if (dropped >= packetDropLevel) {
+            if (trimmed >= packetTrimLevel) {
                 // we've achieved the target
                 // so no need to do any more
                 break;
@@ -358,10 +472,10 @@ public abstract class AbstractBPPFn implements BPPFn {
         }
 
         if (Verbose.level >= 3) {
-            System.err.println("BPPUnpack: dropContent dropped " + dropped);
+            System.err.println("BPPFn: trimContent trimmed " + trimmed);
         }
-        
-        return dropped;
+
+        return trimmed;
     }            
 
     /**
@@ -369,151 +483,64 @@ public abstract class AbstractBPPFn implements BPPFn {
      */
     protected byte[] packContent() {
 
-        // The new size is the incoming size - the dropped content chunks
-        int droppedSize = 0;
+        // The new size is the incoming size - the trimmed content chunks
+        int trimmedSize = 0;
 
-        for (int c=0; c<chunkCount; c++) {
-            if (isDropped[c]) {
-                droppedSize += contentSizes[c];
+        for (int c=0; c<packetMetadataBlock.chunkCount; c++) {
+            if (packetMetadataBlock.isDropped[c]) {
+                trimmedSize += packetMetadataBlock.contentSizes[c];
             }
         }
         
         if (Verbose.level >= 3) {
-            System.err.println("BPPUnpack: packContent dropped " + droppedSize);
+            System.err.println("BPPFn: packContent trimmed " + trimmedSize);
         }
         
-        byte[] packetBytes = new byte[packetLength - droppedSize];
+        byte[] packetBytes = new byte[packetLength - trimmedSize];
 
         int bufPos = 0;
 
 
-        // 32 bits for BPP header
-        packetBytes[0] = (byte)((0x0C << 4) & 0xFF);
-        packetBytes[1] = (byte)(0x00);
-        packetBytes[2] = (byte)((chunkCount & 0x1F) << 3);
-        packetBytes[3] = (byte)(0x00);
+        // Now build  BPP Header + Command Block
+        BPP.BPPHeader header = packetHeader;
 
-        // increase bufPos
-        bufPos += BPP.BLOCK_HEADER_SIZE;
+        bufPos = BPPPacket.writeHeader(packetBytes, header);
 
-
-        // 24 bits for Command Block
-        // build int, then pack into bytes
-        int commandBlock = 0;
-
-        commandBlock = (command << 19) | ((byte)(condition & 0x000000FF) << 11) | ((byte)(threshold & 0x000000FF) << 3);
+        // Command Block
+        BPP.CommandBlock commandBlock = packetCommandBlock;            
             
-        packetBytes[4] = (byte)(((commandBlock & 0x00FF0000) >> 16) & 0xFF);
-        packetBytes[5] = (byte)(((commandBlock & 0x0000FF00) >> 8) & 0xFF);
-        packetBytes[6] = (byte)(((commandBlock & 0x000000FF) >> 0) & 0xFF);
+        bufPos = BPPPacket.writeCommandBlock(packetBytes, bufPos, commandBlock);
 
-        // Add Sequence no
-        packetBytes[7] = (byte)(((sequence & 0xFF000000) >> 24) & 0xFF);
-        packetBytes[8] = (byte)(((sequence & 0x00FF0000) >> 16) & 0xFF);
-        packetBytes[9] = (byte)(((sequence & 0x0000FF00) >> 8) & 0xFF);
-        packetBytes[10] = (byte)(((sequence & 0x000000FF) >> 0) & 0xFF);
-            
         if (Verbose.level >= 2) {
-            System.err.println("Chunk data: seq: " + sequence + " nalNo: " + nalNo + " nalCount: " + nalCount);
+            System.err.println("Chunk data: seq: " + packetCommandBlock.sequence + " nalNo: " + packetMetadataBlock.nalNo[0] + " nalCount: " + packetMetadataBlock.nalCount[0]);
         }
-
-        // increase bufPos
-        bufPos += BPP.COMMAND_BLOCK_SIZE;
 
         // Visit the Content
-        for (int c=0; c<chunkCount; c++) {
-                
-            // Get the payload info
-            int contentSize = contentSizes[c];
+        BPP.MetadataBlock mb = packetMetadataBlock;
+        
+        bufPos = BPPPacket.writeMetadataBlock(packetBytes, bufPos, mb);
 
-            // get fragment from content
-            int fragment = fragments[c];
-            boolean isLastFragment = lastFragment[c];
-            boolean isDroppedChunk = isDropped[c];
-
-
-            if (isDroppedChunk) {
-                // it's dropped, so send no content
-                // set contentSize to 0
-                contentSize = 0;
-            }
-
-            //System.err.println("BPP: contentSize = " + contentSize);
-
-
-            // Add per-chunk Metadata Block - 48 bits / 6 bytes 
-            //  -  22 bits (OFFi [5 bits (Chunk Offset) + 12 bits (Source Frame No) + 5 bits (Frag No)])
-            //   + 14 bits (CSi) + 4 bits (SIGi) + 1 bit (OFi) + 1 bit (FFi)
-            //   + 6 bits (PAD)
-                
-            int offI = 0;
-            int csI = 0;
-            // significance probably calculated on-the-fly, from the NAL
-            int sigI = significance[c];
-                
-            
-            offI = ((nalCount & 0x0000001F) << 17) | ((nalNo & 0x00000FFF) << 5) | ((fragment & 0x0000001F) << 0);
-
-            //System.err.printf(" offI = %d  0x%5X \n", offI, offI);
-
-            // chunk size - 14 bits
-            csI = (contentSize & 0x00003FFF);
-
-            // now build the next 6 bytes
-                
-            // need 8 bits: 14 - 21 of offI
-            packetBytes[bufPos] = (byte)(((offI & 0x003FC000) >> 14) & 0xFF);
-            // need 8 bits: 6 - 13 of offI
-            packetBytes[bufPos+1] = (byte)(((offI & 0x00003FC0) >> 6) & 0xFF);
-            // need 6 bits: 0 - 5 of offI
-            packetBytes[bufPos+2] = (byte)((((offI & 0x0000003F) >> 0) << 2) & 0xFF);
-
-
-            // need 2 bits: 12 - 13 of csI
-            packetBytes[bufPos+2] |= (byte)(((csI & 0x00003000) >> 12) & 0x03);
-            // need 8 bits: 4 - 11 of csI
-            packetBytes[bufPos+3] = (byte)(((csI &  0x00000FF0) >> 4) & 0xFF);
-            // need 4 bits: 0 - 3 of csI
-            packetBytes[bufPos+4] = (byte)((((csI &  0x0000000F) >> 0) << 4) & 0xFF);
-
-            // need 4 bits: 0 - 3 of sigI
-            packetBytes[bufPos+4] |= (byte)(((sigI & 0x0000000F) >> 0) & 0x0F);
-
-            // need 1 bit for OFi
-            packetBytes[bufPos+5] = (byte)(((isDroppedChunk ? 1 : 0) << 7) & 0xFF);
-            // need 1 bit for FFi
-            packetBytes[bufPos+5] |= (byte)(((isLastFragment ? 1 : 0) << 6) & 0xFF);
-            // need 1 bit for VCL/NONVCL
-            packetBytes[bufPos+5] |= (byte)((nalType.getValue() & 0x01) << 5);
-
-            // need 5 bits of PAD
-
-            // increase bufPos
-            bufPos += BPP.METADATA_BLOCK_SIZE;
-
-        }
-
-
+        
         // Now add in the content
-        for (int c=0; c<chunkCount; c++) {
-            boolean isDroppedChunk = isDropped[c];
+        for (int c=0; c<packetMetadataBlock.chunkCount; c++) {
+            boolean isTrimmedChunk = packetMetadataBlock.isDropped[c];
                 
-            if (!isDroppedChunk) {
-                // send content chunks which are not dropped
+            if (!isTrimmedChunk) {
+                // send content chunks which are not trimmed
                 // now add the bytes to the packetBytes
                 // source_arr,  sourcePos,  dest_arr,  destPos, len
-                System.arraycopy(payload, contentStartPos[c], packetBytes, bufPos, contentSizes[c]);
+                System.arraycopy(payload, contentStartPos[c], packetBytes, bufPos, packetMetadataBlock.contentSizes[c]);
 
                 if (Verbose.level >= 3) {
                     //System.err.printf(" 0x%02X 0x%02X 0x%02X 0x%02X \n",  packetBytes[bufPos+0], packetBytes[bufPos+1], packetBytes[bufPos+2], packetBytes[bufPos+3]);
                     //System.err.printf(" 0x%02X 0x%02X 0x%02X 0x%02X \n",  packetBytes[bufPos+4], packetBytes[bufPos+5], packetBytes[bufPos+6], packetBytes[bufPos+7]);
                 }
                 
-                bufPos += contentSizes[c];
+                bufPos += packetMetadataBlock.contentSizes[c];
 
             } else {
                 if (Verbose.level >= 3) {
-                    System.err.println("packContent: content " + c + " is dropped");
+                    System.err.println("packContent: content " + c + " is trimmed");
                 }
             }
 
