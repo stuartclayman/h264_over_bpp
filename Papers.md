@@ -5,10 +5,12 @@ The following papers have utilized Packet Trimming and BPP.
 We did a number of experiments, using various architectural configurations and setups, over time.  Each paper focusses on a different aspect of the setup and provides the consequential results and analysis.
 
 - **Enhancing Bandwidth Utilization for Video Streaming with Packet Trimming in 6G**  
- Stuart Clayman, Müge Sayıt, David Griffin, Miguel Rio.   *IEEE 20th International Conference on Network and Service Management (CNSM), Prague, Oct 2024.*
+Stuart Clayman, Müge Sayıt, David Griffin, Miguel Rio.  
+*IEEE 20th International Conference on Network and Service Management (CNSM), Prague, Oct 2024.*
 
 - **Using Edge-Based Packet Trimming for Effective Bandwidth Utilization in 6G**  
- Stuart Clayman, Müge Sayıt, David Griffin, Miguel Rio.   *IEEE 3rd International Conference on 6G Networking (6GNet), Paris, Oct 2024.*
+Stuart Clayman, Müge Sayıt, David Griffin, Miguel Rio.  
+*IEEE 3rd International Conference on 6G Networking (6GNet), Paris, Oct 2024.*
 
 - **Using Edge-Based Packet Trimming for Effective Bandwidth Utilization in 6G**  
 Stuart Clayman, Müge Sayıt David Griffin, Miguel Rio.  
