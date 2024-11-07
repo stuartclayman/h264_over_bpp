@@ -4,16 +4,15 @@ This contains java code to read H264 files, and send them using the BPP packet f
 The receiver can print data or reconstruct a valid H264 stream to
 save.
 
-These programs can be used with an external virtualisation platform
+These programs can be used with an [external virtualisation platform](#vlsp )
 which can enact BPP behaviours to do *Packet Trimming* in order to drop chunks under certain network conditions.  
 
 The provided instance is the BPP Forwarder [included with this software](java/netfn/README.md)
 
-An alternative is: [VLSP](https://github.com/stuartclayman/VLSP) the
-*Very Lightweight Network & Service Platform*, which provides a set of Virtual Routers and Virtual Network Connections to create a virtualized networking and compute test environment.
-
 
 ### Packages
+
+These are the java packages used:
 
 **app**  Application entry points  
 **bpp**  BPP definitions  
@@ -23,6 +22,14 @@ An alternative is: [VLSP](https://github.com/stuartclayman/VLSP) the
 **processor**  NALs --> chunks and chunks --> NALs  
 **terminal**  Terminal output functions  
 **util** Util functions  
+
+
+## Papers
+
+The [following papers](Papers.md) have been written about Packet Trimming using BPP.
+
+
+
 
 
 ## Useful interations
@@ -129,7 +136,10 @@ All commands support verbose output, at different levels:
 **-vv** Verbose level 2  
 **-vvv** Verbose level 3  
 
-## Papers
 
-The [following papers](Papers.md) have been written about Packet Trimming using BPP.
+## <a name="vlsp"></a> External Virtualization Platform
+
+An alternative virtualization platform is: [VLSP](https://github.com/stuartclayman/VLSP) the
+*Very Lightweight Network & Service Platform*, which provides a set of Virtual Routers and Virtual Network Connections to create a virtualized networking and compute test environment.
+
 
