@@ -12,10 +12,6 @@ Stuart Clayman, Müge Sayıt, David Griffin, Miguel Rio.
 Stuart Clayman, Müge Sayıt, David Griffin, Miguel Rio.  
 *IEEE 3rd International Conference on 6G Networking (6GNet), Paris, Oct 2024.*
 
-- **Using Edge-Based Packet Trimming for Effective Bandwidth Utilization in 6G**  
-Stuart Clayman, Müge Sayıt David Griffin, Miguel Rio.  
-*IEEE 3rd Edition of the International Conference on 6G Networking, 2024.*
-
 - **Dynamic Packet Content Construction and Processing for End-to-End Streaming in 6G**  
 Stuart Clayman, Emre Karakış, Mustafa Tuker, Elif Ak, Berk Canberk, Müge Sayıt.  
  *IEEE 28th International Workshop on Computer Aided Modeling and Design of Communication Links and Networks (CAMAD), Nov 2023.*

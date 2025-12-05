@@ -4,4 +4,8 @@ NOTES/
 Students/
 scripts/
 experiments/
+interesting/
+video/
 *~
+*.org
+.DS_Store
