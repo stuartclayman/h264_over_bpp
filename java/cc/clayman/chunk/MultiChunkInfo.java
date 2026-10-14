@@ -176,6 +176,20 @@ public class MultiChunkInfo implements ChunkInfo {
         return thisContent;
     }
 
+    /**
+     * Add some data to the payload chunk: n
+     */
+    public ChunkContent addPayload(ByteBuffer buf, int n) throws UnsupportedOperationException {
+        ChunkContent thisContent = content[n];
+
+        int remainingInChunk = thisContent.addPayload(buf);
+
+        //System.err.println("A:    content[" + nextContent + "] remaining = " + remainingInChunk);
+        
+        return thisContent;
+    }
+
+    
     
     /**
      * Add some data to the payload
@@ -200,10 +214,12 @@ public class MultiChunkInfo implements ChunkInfo {
     /**
      * Add some data to the payload chunk: n
      */
+
+    /*
     public int addPayload(ByteBuffer buf, int n) throws UnsupportedOperationException {
         return content[n].addPayload(buf);
     }
-
+    */
     
     /**
      * Add some data to the payload chunk: n

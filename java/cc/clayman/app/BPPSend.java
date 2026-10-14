@@ -38,11 +38,14 @@ public class BPPSend {
     static int packetSize = 1500;         // packet size
     static int nalsPerFrame = 3;          // no of NALs per frame
     static int videoKbps = 1094;          // the bandwidth of the video file
-    static int threshold = 5;             // default threshold
-    static int fnSpec = BPP.Function.NONE;    // No special functions called in network node
+    static int threshold = 5;                 // default threshold
+    static int fnSpec = BPP.Function.NONE;        // No special functions called in network node
+    static int condSpec = BPP.Condition.LIMITED;     // Trim when bandwidth is limited
+    static boolean reorderBySignificance = false;   // Show we reorder the chunks by significance value before sending
+
 
     static ChunkPacketizer packetizer = null;
-    static ChunkSizeCalculator calculator = null;
+    static ChunkSizeCalculator calculator = null;    // Default is EvenSplit in MultiNALProcessor
     
 
     public static void main(String[] args) {
@@ -174,6 +177,9 @@ public class BPPSend {
 
                             fnSpec = new BPPFunction.RelaxThreshold(arg).representation();
 
+                            // need to set the condition too
+                            condSpec = BPP.Condition.LTDFUNC;
+
                         } else {
                             System.err.println("Function spec: illegal arg. Expected -Fr:arg e.g. -Fr:1");
                             System.exit(1);
@@ -183,6 +189,33 @@ public class BPPSend {
                         System.exit(1);
 
                     }
+                    
+                } else if (arg0.startsWith("-C")) {
+
+                    if (arg0.equals("-Cl")) {
+                        // If bandwidth is limited (the default)
+                        condSpec = BPP.Condition.LIMITED;
+
+                    } else if (arg0.equals("-Ca")) {
+                        // Always try
+                        condSpec = BPP.Condition.ALWAYS;
+
+                    } else if (arg0.equals("-Cn")) {
+                        // Never try trimming
+                        condSpec = BPP.Condition.NEVER;
+
+                    } else if (arg0.equals("-Cf")) {
+                        // Try running special function
+                        condSpec = BPP.Condition.LTDFUNC;
+
+
+                    } else {
+                        // Unknown packing option
+                    }
+
+                } else if (arg0.startsWith("-R")) {
+                    // reorder chunks
+                    reorderBySignificance = true;
                     
                 } else if (arg0.startsWith("-v")) {
                     if (arg0.equals("-v")) {
@@ -213,7 +246,7 @@ public class BPPSend {
             System.err.println("Sleep: " + sleep);
             System.err.println("Adaptive Sleep: " + (adaptiveSleep ? "ON" : "OFF"));
             System.err.println("Threshold: " + threshold);
-            System.err.println("Video kbps: " + videoKbps);
+            System.err.println("Bandwidth (kbps): " + videoKbps);
             System.err.println("Columns: " + columns);
         }
         
@@ -225,7 +258,7 @@ public class BPPSend {
     }
 
     static void usage() {
-        System.err.println("BPPSend [-f [-|filename]] [-h host]  [-p port] [-s sleep|-r rate|-a] [-z packetSize] [-N nals] [-B bandwidth] [-T threshold] [-Pe|-Pd|-Pi|-Pf]");
+        System.err.println("BPPSend [-f [-|filename]] [-h host]  [-p port] [-s sleep|-r rate|-a] [-z packetSize] [-N nals] [-B bandwidth (Kbps)] [-T threshold] [-Pe|-Pd|-Pi|-Pf]");
         System.exit(1);
     }
 
@@ -247,7 +280,12 @@ public class BPPSend {
         
         // Configure ChunkPacketizer
         // 1500 byte packets / 3 chunks
-        packetizer = new BPPSVCPacketizer(packetSize, nalsPerFrame);
+        if (reorderBySignificance) {
+            packetizer = new BPPReorderPacketizer(packetSize, nalsPerFrame);
+        } else {
+            packetizer = new BPPSVCPacketizer(packetSize, nalsPerFrame);
+        }
+
 
         // Open a H264InputStream
         H264InputStream str = null;
@@ -308,7 +346,7 @@ public class BPPSend {
             // This is used by the network node to drop chunks
             
             // now send it
-            sender.sendPayload(packetizer.convert(count, BPP.Command.WASH, BPP.Condition.LIMITEDFN, threshold, fnSpec, chunk));
+            sender.sendPayload(packetizer.convert(count, BPP.Command.WASH, condSpec, threshold, fnSpec, chunk));
 
             // sleep a bit
             try {

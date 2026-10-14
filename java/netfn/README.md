@@ -8,15 +8,20 @@ This package provides 2 forwarders:
 ## Useful interations
 
 
-**BPPSend  -->  BPPForward --> BPPListen**   _Prints out BPP received info, factoring in any trimming by the BPP forward function._
-
 **BPPSend  -->  BPPForward -->  H264Listen**  _Reconstructs H264 video from BPP packets,
 and outputs to a file. This factors in any trimming by the BPP forward function. All chunks are post-processed, and any lost
 chunks will cause the containing NAL to not be written out to the file._ 
 
+**BPPSend  -->  BPPForward --> BPPListen**   _Prints out BPP received info, factoring in any trimming by the BPP forward function._
+
 **UDPSend  -->  UDPForward -->  UDPListen**   _Outputs data from UDP packets into a
 file. All received packets are written directly to the file. Loss from the UDPForward function will
 cause holes in the H264 stream._
+
+To use the cutting approach, the sender needs to reorder the chunks,
+based on the significance value, and the forwarder needs to select a
+cutting behaviour. The listener will adapt accordingly.  
+**BPPSend -R  -->  BPPForward -Bc --> H264Listen** _A cutting approach pipeline._
 
 
 ## Usage
@@ -35,8 +40,13 @@ _Listen for BPP packets and forward them_
 **-h** host Host to forward to.  Default: localhost  
 **-P** port Port to forward to.  Default: 6798  
 **-H** port HTTP listen port.  Default: 8080  
-
-
+**-Br** Use Basic Bandwidth utilization evaluator, with packet Rebuild.  
+**-BR** Use enhanced utilization evaluator, with packet Rebuild.  
+**-Bc** Use Basic Bandwidth utilization evaluator, with the Packet Cut approach.  
+**-BC** Use enhanced utilization evaluator, with the Packet Cut approach.  
+**-Md** Print messages about datagrams coming IN and OUT.  
+**-Mp** Prints data volume for each packet.  
+**-Ms** Prints data volume for 1 second.  
 
 
 

@@ -78,33 +78,38 @@ _Listen for BPP packets_
 
 `java cc.clayman.app.H264Listen  -f ~/tmp/sc_0.6mbps.264  -p 6798`
 
-H264Listen [-f filename] [-p port]  
+H264Listen [-f filename] [-p port] [-D seconds]  
 _Listen for BPP packets and construct an H264 file_  
 **-f** filename Send data to file.  Use - for stdout.  Default: stdout  
 **-p** port Listen port.  Default: 6799  
-
+**-D** seconds. Delay for no packet arrival as end of stream. Default: 5  
 
 
 `java cc.clayman.app.BPPSend -f filename`
 
-BPPSend [-f filename] [-h host] [-p port] [-s sleep|-r rate] [-z
-packetSize] [-N nals] [-B bandwidth] [-Pe|-Pd|-Pi|-Pf]  
+BPPSend [-f filename] [-h host] [-p port] [-R] [-s sleep|-r rate] [-z packetSize] [-N nals] [-B bandwidth] [-T threshold] [-Pe|-Pd|-Pi|-Pf] [-Cl|-Ca|-Cn|-Ca]  
 _Send a video file over BPP_  
 **-f** filename Read data from file.  Use - for stdin.  Default: stdin  
 **-h** host Send host.  Default: localhost  
 **-p** port Send port.  Default: 6799  
+**-R** Reorder the chunks by significance value. Default: false__
 **-z** Packet size.  Default: 1500  
-**-r** rate No of packets per second  
+**-r** rate. No of packets per second  
 **-s** inter packet sleep (in milliseconds).  Default: 7  
 **-a** Do adaptive sleep.  Based on chunk size and packet size.
 Default: false  
 **-N** NALs per frame.  Default: 3  
 **-B** Bandwidth of the video, in kpbs.  Default: 1094  
-**-c** cols No of columns for output.  Default: 80  
-**-Pe** Even packing strategy.  Default: EvenSplit  
+**-T** Threshold for significance values.  Default: 5  
+**-c** cols. No of columns for output.  Default: 80  
+**-Pe** Even Split packing strategy (the default)  
 **-Pd** Dynamic packing strategy  
 **-Pi** In Order packing strategy  
 **-Pf** In Order Fully packed packing strategy
+**-Cl** Condition: If bandwidth is limited (the default)  
+**-Ca** Condition: Always try trimming  
+**-Cn** Condition: Never try trimming  
+**-Ca** Condition: Always try trimming  
 
 
 `java cc.clayman.app.UDPListen -p 6798`

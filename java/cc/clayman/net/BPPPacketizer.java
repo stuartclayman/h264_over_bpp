@@ -67,12 +67,12 @@ public class BPPPacketizer implements ChunkPacketizer {
      * Convert a ChunkInfo into byte[]
      * @throws UnsupportedOperationException if the Chunk is too big to fit in a packet
      */
-    public byte[] convert(int sequence, int command, int condition, int threshold, int fnSpec, ChunkInfo chunk) throws UnsupportedOperationException {
+    public byte[] convert(int sequence, int command, int condition, int threshold, int fnSpec, ChunkInfo chunkInfo) throws UnsupportedOperationException {
         
         count++;
 
         // How many bytes will the packet really need
-        int totalChunkSpaceUsed = chunk.offset();
+        int totalChunkSpaceUsed = chunkInfo.offset();
 
         int sizeNeeded = totalChunkSpaceUsed;
 
@@ -82,7 +82,7 @@ public class BPPPacketizer implements ChunkPacketizer {
             // there's too much content in the chunk
             throw new UnsupportedOperationException("Chunk size: " + totalChunkSpaceUsed + " too big for packet size: " + packetSize + " plus header " + headerByteCount + ". sizeNeeded = " + sizeNeeded);
         } else {
-            ChunkContent[] content = chunk.getChunkContent();
+            ChunkContent[] content = chunkInfo.getChunkContent();
 
             int chunkCount = content.length;
 
@@ -128,7 +128,7 @@ public class BPPPacketizer implements ChunkPacketizer {
         
 
             // Convert the ChunkInfo to a BPP.MetadataBlock
-            BPP.MetadataBlock metadataBlock = chunkInfoToMetadataBlock(chunk);
+            BPP.MetadataBlock metadataBlock = chunkInfoToMetadataBlock(chunkInfo);
 
             // and write into the packet
             bufPos = BPPPacket.writeMetadataBlock(packetBytes, bufPos, metadataBlock);
@@ -158,8 +158,8 @@ public class BPPPacketizer implements ChunkPacketizer {
         
     }
 
-    private BPP.MetadataBlock chunkInfoToMetadataBlock(ChunkInfo chunk) {
-        ChunkContent[] content = chunk.getChunkContent();
+    private BPP.MetadataBlock chunkInfoToMetadataBlock(ChunkInfo chunkInfo) {
+        ChunkContent[] content = chunkInfo.getChunkContent();
 
         //System.err.println("content.length = " + content.length);
 
@@ -187,7 +187,7 @@ public class BPPPacketizer implements ChunkPacketizer {
         mb.nalCount = new int[chunkCount];
         mb.nalNo = new int[chunkCount];
         mb.type = new byte[chunkCount];
-
+        mb.positions = new int[chunkCount];
         
         
         // Visit the Content
@@ -207,6 +207,9 @@ public class BPPPacketizer implements ChunkPacketizer {
 
             // significance
             mb.significance[c] = content[c].getSignificanceValue();
+
+            // position
+            mb.positions[c] = content[c].getPosition();
 
             // dropped
             mb.isDropped[c] = false;

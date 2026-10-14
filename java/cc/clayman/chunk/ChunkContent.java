@@ -20,6 +20,8 @@ public class ChunkContent {
     int chunkSize;              // How big is the chunk payload
     int remaining;              // How much payload space is remaining
 
+    int position;               // position of this chunk
+
     byte[] payload = null;
 
     public ChunkContent(int chunkSize) {
@@ -106,6 +108,21 @@ public class ChunkContent {
      */
     public ChunkContent setSignificanceValue(int significance) {
         this.significance = significance;
+        return this;
+    }
+
+    /**
+     * Get the position for this ChunkContent
+     */
+    public int getPosition() {
+        return position;
+    }
+
+    /**
+     * Set the position of this ChunkContent
+     */
+    public ChunkContent setPosition(int pos) {
+        this.position = pos;
         return this;
     }
 

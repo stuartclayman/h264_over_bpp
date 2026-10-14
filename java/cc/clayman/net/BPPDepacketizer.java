@@ -107,9 +107,10 @@ public class BPPDepacketizer implements ChunkDepacketizer {
         mb.nalCount = new int[chunkCount];
         mb.nalNo = new int[chunkCount];
         mb.type = new byte[chunkCount];
+        mb.positions = new int[chunkCount];
 
         // Read the MetadataBlock
-        bufPos = BPPPacket.readMetadataBlock(packetBytes, bufPos, mb);
+        bufPos = BPPPacket.readMetadataBlock(packetBytes, packet.getLength(), bufPos, mb);
 
         // Process Metadata and update variables
         for (int c=0; c<chunkCount; c++) {
@@ -128,8 +129,8 @@ public class BPPDepacketizer implements ChunkDepacketizer {
 
         // Create a ChunkInfo
         // Pass in array of sizes
-        ChunkInfo chunk = new MultiChunkInfo(mb.contentSizes);
-        chunk.setSequenceNumber(sequence);
+        ChunkInfo chunkInfo = new MultiChunkInfo(mb.contentSizes);
+        chunkInfo.setSequenceNumber(sequence);
 
         // bufPos now should be at first content
 
@@ -144,17 +145,16 @@ public class BPPDepacketizer implements ChunkDepacketizer {
 
 
             // add the payload to the chunk
-            ChunkContent content = chunk.addPayload(buf);
+            ChunkContent content = chunkInfo.addPayload(buf);
             content.setFragmentationNumber(mb.fragments[c]);
             content.setLastFragment(mb.lastFragment[c]);
             content.setIsDropped(mb.isDropped[c]);
-
-
+            content.setPosition(mb.positions[c]);
 
         }
 
 
-        return chunk;
+        return chunkInfo;
         
     }
 

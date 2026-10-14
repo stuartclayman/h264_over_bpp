@@ -5,6 +5,7 @@
 
 package cc.clayman.bpp;
 
+import cc.clayman.net.IP;
 import cc.clayman.util.Verbose;
 
 /*
@@ -63,7 +64,9 @@ public class BPPPacket {
      * Get the command header from the packetBytes into a BPP.CommandBlock
      * @return buffer position after filling header
      */
-    public final static int readCommandBlock(byte[] packetBytes, int bufPos, BPP.CommandBlock commandBlock) {
+    public final static int readCommandBlock(byte[] packetBytes, final int inBufPos, BPP.CommandBlock commandBlock) {
+        int bufPos = inBufPos;
+        
         // Now extract the Command Block
         byte b4 = packetBytes[bufPos+0];
         byte b5 = packetBytes[bufPos+1];
@@ -78,7 +81,7 @@ public class BPPPacket {
                 
         // increase bufPos
         bufPos += BPP.COMMAND_BLOCK_SIZE;
-        
+
 
         // command is top 3 bits of b4
         commandBlock.command = (b4 & 0xE0) >> 5;
@@ -103,7 +106,9 @@ public class BPPPacket {
      * Write the command header from the packetBytes into a BPP.CommandBlock
      * @return buffer position after filling header
      */
-    public final static int writeCommandBlock(byte[] packetBytes, int bufPos, BPP.CommandBlock cb) {
+    public final static int writeCommandBlock(byte[] packetBytes, final int inBufPos, BPP.CommandBlock cb) {
+
+        int bufPos = inBufPos;
 
         // build int, then pack into bytes
         int commandBlock = 0;
@@ -138,7 +143,23 @@ public class BPPPacket {
      * Get the metadata block from the packetBytes into a BPP.MetadataBlock
      * @return buffer position after filling header
      */
-    public final static int readMetadataBlock(byte[] packetBytes, int bufPos, BPP.MetadataBlock mb) {
+    public final static int readMetadataBlock(byte[] packetBytes, final int packetLength, final int inBufPos, BPP.MetadataBlock mb) {
+
+        int bufPos = inBufPos;
+
+        // TODO: keep track of number of content bytes
+        // update mb.isDropped[c] as going through
+
+        // Actual content in the packet
+        int packetContent = packetLength - IP.IP_HEADER - IP.UDP_HEADER - BPP.BLOCK_HEADER_SIZE - BPP.COMMAND_BLOCK_SIZE - (mb.chunkCount * BPP.METADATA_BLOCK_SIZE);
+        
+        int currentContentTotal = 0;
+
+        if (Verbose.level >= 2) {
+            System.err.printf("  Check: Current: %d  Packet: %d\n", currentContentTotal, packetContent);
+        }
+
+        
         for (int c=0; c<mb.chunkCount; c++) {
         
             // Find per-chunk Metadata Block - 48 bits / 6 bytes 
@@ -155,6 +176,7 @@ public class BPPPacket {
             boolean ofI = false;
             boolean ffI = false;
             byte type = 0;
+            int chunkPos = 0;
 
             // first get bytes into structural elements
 
@@ -176,48 +198,71 @@ public class BPPPacket {
             // 4 bits
             csI |= ((packetBytes[bufPos+4] & 0xF0) >> 4);
 
-            // SIGi
+            // SIGi - 4 bits
             sigI = (packetBytes[bufPos+4] & 0x0F);
 
+            // OFi - 1 bit
             ofI = (packetBytes[bufPos+5] & 0x80) == 0 ? false : true;
+            // FFi - 1 bit
             ffI = (packetBytes[bufPos+5] & 0x40) == 0 ? false : true;
-
+            // type - 1 bit
             type = (byte) (((packetBytes[bufPos+5] & 0x20) >> 5) & 0xFF);
+            // chunk position
+            chunkPos = ((packetBytes[bufPos+5] & 0x1F) & 0xFF);
 
             bufPos += BPP.METADATA_BLOCK_SIZE;
-            
+
+
+            // update counts
+            currentContentTotal += csI;
+            System.err.printf("  Check: Current: %d  Packet: %d\n", currentContentTotal, packetContent);
+
             // now unpack values from OFFi
             // [5 bits (NAL Count) + 12 bits (NAL No) + 5 bits (Frag No)])
             int nalCount = (offI >> 17) & 0x0000001F;
             int nalNo = (offI >> 5) & 0x00000FFF;
             int fragmentNo = (offI & 0x0000001F);
 
-            mb.type[c] = type;
-            mb.nalCount[c] = nalCount;
-            mb.nalNo[c] = nalNo;
+            // Index into mb by chunkPos, so that things get ordered by chunkPos,
+            // not the loop index
+            mb.type[chunkPos] = type;
+            mb.nalCount[chunkPos] = nalCount;
+            mb.nalNo[chunkPos] = nalNo;
         
             //System.err.printf("  %-3dOFFi: nalNo: %d nalCount: %d fragment: %d \n", (c+1), nalNo, nalCount, fragment);
             //System.err.printf("     CSi: contentSize: %d  SIGi:  %d\n", csI, sigI);
             //System.err.printf("     OFi: %s  FFi: %s  NAL: %s\n", ofI, ffI, nalType);
 
             // save the contentSize
-            mb.contentSizes[c] = csI;
+            mb.contentSizes[chunkPos] = csI;
 
             // fragmentation info
-            mb.fragments[c] = fragmentNo;
-            mb.lastFragment[c] = ffI;
+            mb.fragments[chunkPos] = fragmentNo;
+            mb.lastFragment[chunkPos] = ffI;
 
             // significance
-            mb.significance[c] = sigI;
+            mb.significance[chunkPos] = sigI;
 
-            // dropped
-            mb.isDropped[c] = ofI;
+            // position
+            mb.positions[chunkPos] = chunkPos;
             
+            // dropped
+            mb.isDropped[chunkPos] = ofI;
+            
+            if (currentContentTotal > packetContent) {
+                // patch up values
+                if (Verbose.level >= 2) {
+                    System.err.printf("  Content  %d dropped size: %d\n", chunkPos, csI);
+                }
+                mb.contentSizes[chunkPos] = 0;
+                mb.isDropped[chunkPos] = true;
+            }
+
             
             if (Verbose.level >= 2) {
                 System.err.printf("  %-3dOFFi: nalNo: %d nalCount: %d fragment: %d \n", (c+1), nalNo, nalCount, fragmentNo);
-                System.err.printf("     CSi: contentSize: %d  SIGi:  %d\n", csI, sigI);
-                System.err.printf("     OFi: %s FFi: %s  NAL: %s\n", offI, ffI, type);
+                System.err.printf("     CSi: contentSize: %d  SIGi:  %d  Pos:  %d\n", csI, sigI, chunkPos);
+                System.err.printf("     OFi: %s FFi: %s  Type: %s\n", offI, ffI, type);
             }
 
         }
@@ -230,7 +275,10 @@ public class BPPPacket {
      * Write the metadata block from the packetBytes into a BPP.MetadataBlock
      * @return buffer position after filling header
      */
-    public final static int writeMetadataBlock(byte[] packetBytes, int bufPos, BPP.MetadataBlock mb) {
+    public final static int writeMetadataBlock(byte[] packetBytes, final int inBufPos, BPP.MetadataBlock mb) {
+
+        int bufPos = inBufPos;
+        
         for (int c=0; c<mb.chunkCount; c++) {
                 
             // Get the payload info
@@ -263,6 +311,8 @@ public class BPPPacket {
             int csI = 0;
             // significance probably calculated on-the-fly, from the NAL
             int sigI = mb.significance[c];
+            // chunk position
+            int chunkPos = mb.positions[c];
                 
             
             offI = ((nalCount & 0x0000001F) << 17) | ((nalNo & 0x00000FFF) << 5) | ((fragment & 0x0000001F) << 0);
@@ -299,15 +349,16 @@ public class BPPPacket {
             // need 1 bit for VCL/NONVCL
             packetBytes[bufPos+5] |= (byte)((nalType & 0x01) << 5);
 
-            // need 5 bits of PAD
+            // need 5 bits for chunk position
+            packetBytes[bufPos+5] |= (byte)(chunkPos & 0x1F);
 
             // increase bufPos
             bufPos += BPP.METADATA_BLOCK_SIZE;
 
             if (Verbose.level >= 2) {
                 System.err.printf("  %-3dOFFi: nalNo: %d nalCount: %d fragment: %d \n", (c+1), nalNo, nalCount, fragment);
-                System.err.printf("     CSi: contentSize: %d  SIGi:  %d\n", csI, sigI);
-                System.err.printf("     OFi: %s FFi: %s  NAL: %s\n", offI, isLastFragment, nalType);
+                System.err.printf("     CSi: contentSize: %d  SIGi:  %d  Pos:  %d\n", csI, sigI, chunkPos);
+                System.err.printf("     OFi: %s FFi: %s  Type: %s\n", offI, isLastFragment, nalType);
             }
 
         }

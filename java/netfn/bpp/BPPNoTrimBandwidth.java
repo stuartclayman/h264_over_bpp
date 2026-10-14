@@ -13,7 +13,7 @@ import java.util.Optional;
  * A NetFn that does some BPP processing based on bandwidth
  * but does no trimming in the first period - e.g 100ms (0.1 seconds)
  */
-public class BPPNoTrimBandwidth extends AbstractBPPFn implements BPPFn {
+public class BPPNoTrimBandwidth extends PacketRebuildBPPFn implements BPPFn {
     // The no trim period
     float period = 0.0f;
 

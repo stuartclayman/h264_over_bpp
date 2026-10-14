@@ -383,7 +383,7 @@ public class MultiNALRebuilder implements NALRebuilder {
                     // Add each ChunkContent to the relevant list
 
                     if (Verbose.level >= 1) {
-                        System.err.println("CHUNK: nalNo: " + (nalNumber+c) + " BPP: content[" + c + "] = " +  content[c].offset() + " fragment: " + content[c].getFragmentationNumber()  + " isLastFragment: " + content[c].isLastFragment() + " isDropped: " + content[c].isDropped());
+                        System.err.println("CHUNK: nalNo: " + (nalNumber+c) + " BPP: content[" + c + "] = " +  content[c].offset() + " significance: " + content[c].getSignificanceValue() + " fragment: " + content[c].getFragmentationNumber()  + " isLastFragment: " + content[c].isLastFragment() + " isDropped: " + content[c].isDropped());
                     }
 
                     // add this to the nalChunkLists

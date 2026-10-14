@@ -75,7 +75,7 @@ public class MultiNALProcessor implements NALProcessor, Iterator<ChunkInfo> {
     // TemporalLayerModel
     TemporalLayerModel temporalLayerModel = new TemporalLayerModelGOB16();
     // SignificanceModel
-    SignificanceModel significanceModel = new SignificanceModel3LayersMod1();
+    SignificanceModel significanceModel = new SignificanceModel3LayersMod2();
     // Layers
     static final Layer[] layerModel = { Layer.L0, Layer.L1, Layer.L2, Layer.L3,  Layer.L4 };
 
@@ -333,6 +333,9 @@ public class MultiNALProcessor implements NALProcessor, Iterator<ChunkInfo> {
                 for (int i=0; i<noOfVCLs; i++) {
                     ChunkContent content = chunk.addPayload(nalBuffers[i]);
 
+                    // set the position
+                    content.setPosition(i);
+                    
                     fragments[i]++;
                     content.setFragmentationNumber(fragments[i]);
 
@@ -358,7 +361,7 @@ public class MultiNALProcessor implements NALProcessor, Iterator<ChunkInfo> {
                     }
 
                     if (Verbose.level >= 1) {
-                        System.err.println("CHUNK: nalNo: " + (chunk.getNALNumber()+i) + " BPP: content[" + i + "] = " + content.offset() + " fragment: " + content.getFragmentationNumber() + " isLastFragment: " + content.isLastFragment());
+                        System.err.println("CHUNK: nalNo: " + (chunk.getNALNumber()+i) + " BPP: content[" + i + "] = " + content.offset() + " significance: " + content.getSignificanceValue() + " fragment: " + content.getFragmentationNumber() + " isLastFragment: " + content.isLastFragment());
                     }
 
                 }

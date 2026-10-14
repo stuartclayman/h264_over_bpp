@@ -26,6 +26,7 @@ public class BPPSVCDepacketizer implements ChunkDepacketizer {
     DatagramPacket packet;
 
     int count = 0;
+    int totalIn = 0;
 
     int chunkCount = 0;
     int command = 0;
@@ -61,9 +62,16 @@ public class BPPSVCDepacketizer implements ChunkDepacketizer {
      */
     public SVCChunkInfo convert(DatagramPacket packet) throws UnsupportedOperationException {
         this.packet = packet;
-        count++;
+
+        count++;        
+        totalIn += packet.getLength();
         
         byte[] packetBytes = packet.getData();
+
+        
+        if (Verbose.level >= 2) {
+            System.err.printf("IN:   %8d%6d%10d\n", count, packet.getLength(), totalIn);
+        }
 
         int bufPos = 0;
         
@@ -115,13 +123,14 @@ public class BPPSVCDepacketizer implements ChunkDepacketizer {
         mb.nalCount = new int[chunkCount];
         mb.nalNo = new int[chunkCount];
         mb.type = new byte[chunkCount];
+        mb.positions = new int[chunkCount];
 
         int nalCount = 0;
         int nalNo = 0;
         NALType nalType = null;
 
         // Read the MetadataBlock
-        bufPos = BPPPacket.readMetadataBlock(packetBytes, bufPos, mb);
+        bufPos = BPPPacket.readMetadataBlock(packetBytes, packet.getLength(), bufPos, mb);
 
         // Process Metadata and update variables
         for (int c=0; c<chunkCount; c++) {
@@ -171,38 +180,138 @@ public class BPPSVCDepacketizer implements ChunkDepacketizer {
         
         // Create a ChunkInfo
         // Pass in array of sizes
-        SVCChunkInfo chunk = new SVCChunks(mb.contentSizes);
-        chunk.setSequenceNumber(sequence);
+        SVCChunkInfo chunkInfo = new SVCChunks(mb.contentSizes);
+        chunkInfo.setSequenceNumber(sequence);
 
-        // bufPos now should be at first content
-
+        // Cross check the contentSizes == packet size
+        // First find what is in the metadatablock
+        int headerContent = 0;
         for (int c=0; c<chunkCount; c++) {
-        
-
-            chunk.setNALType(nalType);
-            chunk.setNALNumber(nalNumber);
-            chunk.setNALCount(nalCount);
-
-                    
-            // Wrap the bytes of the packet
-            ByteBuffer buf = ByteBuffer.wrap(packet.getData(), bufPos, mb.contentSizes[c]);
-
-            // skip content bytes
-            bufPos +=  mb.contentSizes[c];
+            headerContent += mb.contentSizes[c];
 
 
-            // add the payload to the chunk
-            ChunkContent content = chunk.addPayload(buf);
-            content.setFragmentationNumber(fragmentNumber);
-            content.setLastFragment(mb.lastFragment[c]);
-            content.setIsDropped(mb.isDropped[c]);
-
-
-
+            if (Verbose.level >= 2) {
+                System.err.printf(" %-6d Content: chunk: %d  contentBytes: %d mb.content: %d\n", count, mb.positions[c], headerContent, mb.contentSizes[c]);
+            }
         }
 
+        // Actual content in the packet
+        int packetContent = this.packet.getLength() - IP.IP_HEADER - IP.UDP_HEADER - BPP.BLOCK_HEADER_SIZE - BPP.COMMAND_BLOCK_SIZE - (chunkCount * BPP.METADATA_BLOCK_SIZE);
 
-        return chunk;
+        if (Verbose.level >= 2) {
+            System.err.printf(" %-6d Check: Header: %d  Packet: %d byte[]: %d\n", count, headerContent, packetContent, packetBytes.length);
+        }
+        
+        // How much is left in packet
+        int remaining = packetContent;
+        
+        // bufPos now should be at first content
+
+        // Check if sizes in header match packet size
+        if (headerContent == packetContent) {
+            // everything is in order
+
+            for (int c=0; c<chunkCount; c++) {
+        
+
+                chunkInfo.setNALType(nalType);
+                chunkInfo.setNALNumber(nalNumber);
+                chunkInfo.setNALCount(nalCount);
+
+                    
+                // Wrap the bytes of the packet
+                ByteBuffer buf = ByteBuffer.wrap(packet.getData(), bufPos, mb.contentSizes[c]);
+
+                remaining -= mb.contentSizes[c];
+
+                if (Verbose.level >= 2) {
+                    System.err.printf(" %-6d Content: chunk: %d  bufPos: %d mb.content: %d remaining: %d %s\n", count, mb.positions[c], bufPos, mb.contentSizes[c], remaining, "GOOD");
+                }
+
+                // skip content bytes
+                bufPos +=  mb.contentSizes[c];
+
+
+                // add the payload to the chunk
+                // TODO: change addPayload(buf) TO addPayload(buf, position)
+                ChunkContent content = chunkInfo.addPayload(buf, mb.positions[c]);
+                content.setFragmentationNumber(fragmentNumber);
+                content.setLastFragment(mb.lastFragment[c]);
+                content.setIsDropped(mb.isDropped[c]);
+                content.setPosition(mb.positions[c]);
+
+            }
+            
+        } else {
+            // Looks like the packet got CUT in transmission
+            // header size does not match packet size
+            for (int c=0; c<chunkCount; c++) {
+
+                if (remaining == 0) {
+                    // the chunks were cut during transmission
+
+                    chunkInfo.setNALType(nalType);
+                    chunkInfo.setNALNumber(nalNumber);
+                    chunkInfo.setNALCount(nalCount);
+
+                    // is the current chunk cut
+                    boolean chunkCut = false;
+                    
+                    if (mb.contentSizes[c] == 0) {
+                        // the sender actually had a chunk of 0 bytes
+                    } else {
+                        chunkCut = true;
+                    }
+
+                    // Empty ByteBuffer
+                    ByteBuffer buf = ByteBuffer.allocate(0);
+
+                    if (Verbose.level >= 2) {
+                        System.err.printf(" %-6d Content: chunk: %d  bufPos: %d expected: %d remaining: %d %s\n", count, mb.positions[c], bufPos, mb.contentSizes[c], remaining, (chunkCut ? "CUT" : "ZERO"));
+                    }
+                    
+                    // add the payload to the chunk
+                    // TODO: change addPayload(buf) TO addPayload(buf, position)
+                    ChunkContent content = chunkInfo.addPayload(buf, mb.positions[c]);
+                    content.setFragmentationNumber(fragmentNumber);
+                    content.setLastFragment(mb.lastFragment[c]);
+                    content.setIsDropped(chunkCut);
+                    content.setPosition(mb.positions[c]);
+
+                } else {
+                    // we still have the chunks
+
+                    chunkInfo.setNALType(nalType);
+                    chunkInfo.setNALNumber(nalNumber);
+                    chunkInfo.setNALCount(nalCount);
+
+                    
+                    // Wrap the bytes of the packet
+                    ByteBuffer buf = ByteBuffer.wrap(packet.getData(), bufPos, mb.contentSizes[c]);
+
+                    remaining -= mb.contentSizes[c];
+
+                    if (Verbose.level >= 2) {
+                        System.err.printf(" %-6d Content: chunk: %d  bufPos: %d mb.content: %d remaining: %d %s\n", count, mb.positions[c], bufPos, mb.contentSizes[c], remaining, "OK");
+                    }
+
+                    // skip content bytes
+                    bufPos +=  mb.contentSizes[c];
+
+
+                    // add the payload to the chunk
+                    // TODO: change addPayload(buf) TO addPayload(buf, position)
+                    ChunkContent content = chunkInfo.addPayload(buf, mb.positions[c]);
+                    content.setFragmentationNumber(fragmentNumber);
+                    content.setLastFragment(mb.lastFragment[c]);
+                    content.setIsDropped(mb.isDropped[c]);
+                    content.setPosition(mb.positions[c]);
+                }
+            }
+        
+        }
+
+        return chunkInfo;
         
     }
 

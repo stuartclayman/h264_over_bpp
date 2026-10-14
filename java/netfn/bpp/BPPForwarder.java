@@ -9,6 +9,7 @@ import java.util.TimerTask;
 import java.net.DatagramPacket;
 import java.net.UnknownHostException;
 import java.util.Optional;
+import com.sun.management.OperatingSystemMXBean;
 
 import cc.clayman.h264.*;
 import cc.clayman.chunk.*;
@@ -58,7 +59,15 @@ public class BPPForwarder implements ManagementListener {
     // keep time
     long startTime = 0;
     long lastTime = 0;
+    long seconds = 0;
+    long lastSecond = 0;
 
+    // keep usage info
+    long totalUsage = 0;
+    long perSecUsage = 0;
+    long perSecCPU = 0;
+    OperatingSystemMXBean osMBean = null;
+    
     public BPPForwarder(int udpPort, String forwardHost, int forwardPort, int bandwidth) {
         this.udpPort = udpPort;
         this.forwardHost = forwardHost;
@@ -66,7 +75,13 @@ public class BPPForwarder implements ManagementListener {
         setBandwidth(bandwidth);
 
         System.out.printf("BW:  %9d%10d\n", count, bandwidthBits);
+        System.out.printf("Verbose: %d\n", Verbose.level);
 
+        try {
+            osMBean =  java.lang.management.ManagementFactory.newPlatformMXBeanProxy(java.lang.management.ManagementFactory.getPlatformMBeanServer(),  java.lang.management.ManagementFactory.OPERATING_SYSTEM_MXBEAN_NAME,  OperatingSystemMXBean.class);
+        } catch (Exception e) {
+            System.err.println("MXBean error: " + e);
+        }
     }
 
     protected void processTraffic() throws IOException {
@@ -82,7 +97,7 @@ public class BPPForwarder implements ManagementListener {
         
         // Timer stuff
         startTime = System.currentTimeMillis();
-        lastTime = System.currentTimeMillis();
+        lastSecond = startTime;
 
         // sit and listen
         while (! receiver.isEOF()) {
@@ -97,9 +112,35 @@ public class BPPForwarder implements ManagementListener {
             } else {
                 // process the packet
                 count++;
+                countLastSecond++;
                 totalIn += packet.getLength();
                 
                 datagramProcess(packet);
+
+                int scale = 25;
+                
+                // Do something every second divided by scale
+                if (lastTime - lastSecond >= (1000/scale)) {
+                    // do something
+                    lastSecond = lastTime;
+                    seconds++;
+
+                    // Once per second msg
+                    if ((Message.status & Message.BPPFN_SECOND) == Message.BPPFN_SECOND) {
+                        System.err.println("seconds: " + ((float)seconds/(float)scale) + " cpu: " + perSecCPU + " usage: " + perSecUsage + " packets: " + countLastSecond + " in: " + (volumeInLastSecond * 8) + " out: " + (volumeOutLastSecond * 8) + " trimmed: " + ((volumeInLastSecond * 8) - (volumeOutLastSecond * 8)));
+                    }
+                    
+                    // update values
+                    // traffic
+                    volumeInLastSecond = 0;
+                    volumeOutLastSecond = 0;
+                    countLastSecond = 0;
+                    // cpu
+                    totalUsage += perSecUsage;
+                    perSecUsage = 0;
+                    perSecCPU = 0;
+
+                }
             }
 
         }
@@ -119,14 +160,40 @@ public class BPPForwarder implements ManagementListener {
     protected void datagramProcess(DatagramPacket packet) throws UnknownHostException {
         int length = packet.getLength();
         
-        System.out.printf("IN:   %8d%6d%10d\n", count, length, totalIn);
+        if ((Message.status & Message.PROCESS_DATAGRAM) == Message.PROCESS_DATAGRAM) {
+            System.out.printf("IN:   %8d%6d%10d\n", count, length, totalIn);
+        }
 
-        DatagramPacket newVal = trimDatagram(packet);
+        // Track time to do thr trim
+        DatagramPacket newVal;
 
+        // start time of the trim
+        long beforeTime = System.nanoTime();
+        long cpuBefore = osMBean.getProcessCpuTime();   // from MXBean - seems more accurate
+        
+        newVal = trimDatagram(packet);
+
+        long cpuAfter = osMBean.getProcessCpuTime();
+        long afterTime = System.nanoTime();
+
+        long elapsedCPU = cpuAfter - cpuBefore;
+        long elapsedNS = afterTime - beforeTime;
+        
+        //if (elapsedNS != elapsedCPU) {
+        //    System.out.println("different: " + elapsedCPU + "  /   " + elapsedNS);
+        //}
+
+        perSecCPU += elapsedCPU;
+        perSecUsage += elapsedNS;
+
+        
+        // Check trim return value
         if (newVal == null) {
             // nothing to send
             // so packet is dropped
-             System.out.printf("DROPPED:  %8d%10d\n", count, totalOut);
+            if ((Message.status & Message.PROCESS_DATAGRAM) == Message.PROCESS_DATAGRAM) {
+                System.out.printf("DROPPED:  %8d%10d\n", count, totalOut);
+            }
         } else {
             // send packet
             int newLength = newVal.getLength();
@@ -134,10 +201,14 @@ public class BPPForwarder implements ManagementListener {
 
             if (length == newLength) {
                 // the packet is not changed
-                System.out.printf("OUT:  %8d%6d%10d\n", count, newLength, totalOut);
+                if ((Message.status & Message.PROCESS_DATAGRAM) == Message.PROCESS_DATAGRAM) {
+                    System.out.printf("OUT:  %8d%6d%10d\n", count, newLength, totalOut);
+                }
             } else {
                 // the packet has chunks removed
-                System.out.printf("OUT*: %8d%6d%10d\n", count, newLength, totalOut);
+                if ((Message.status & Message.PROCESS_DATAGRAM) == Message.PROCESS_DATAGRAM) {
+                    System.out.printf("OUT*: %8d%6d%10d\n", count, newLength, totalOut);
+                }
             }
         
             sender.sendPayload(newVal);
@@ -152,8 +223,6 @@ public class BPPForwarder implements ManagementListener {
      */
     protected DatagramPacket trimDatagram(DatagramPacket datagram) {
 
-        count++;
-        countLastSecond++;
 
         try {
             // increase volumeIn

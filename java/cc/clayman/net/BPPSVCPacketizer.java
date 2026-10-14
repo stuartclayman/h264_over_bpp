@@ -71,12 +71,12 @@ public class BPPSVCPacketizer implements ChunkPacketizer {
      * @throws UnsupportedOperationException if the Chunk is too big to fit in a packet
      */
     public byte[] convert(int sequence, int command, int condition, int threshold, int fnSpec, ChunkInfo svcChunk) throws UnsupportedOperationException {
-        SVCChunkInfo chunk = (SVCChunkInfo)svcChunk;
+        SVCChunkInfo chunkInfo = (SVCChunkInfo)svcChunk;
         
         count++;
 
         // How many bytes will the packet really need
-        int totalChunkSpaceUsed = chunk.offset();
+        int totalChunkSpaceUsed = chunkInfo.offset();
 
         int sizeNeeded = totalChunkSpaceUsed;
 
@@ -86,7 +86,7 @@ public class BPPSVCPacketizer implements ChunkPacketizer {
             // there's too much content in the chunk
             throw new UnsupportedOperationException("Chunk size: " + totalChunkSpaceUsed + " too big for packet size: " + packetSize + " plus header " + headerByteCount + ". sizeNeeded = " + sizeNeeded);
         } else {
-            ChunkContent[] content = chunk.getChunkContent();
+            ChunkContent[] content = chunkInfo.getChunkContent();
 
             int chunkCount = content.length;
 
@@ -96,13 +96,13 @@ public class BPPSVCPacketizer implements ChunkPacketizer {
 
 
             // Get the NAL number
-            int nalNo = chunk.getNALNumber();
+            int nalNo = chunkInfo.getNALNumber();
 
             // Get the NAL count
-            int nalCount = chunk.getNALCount();
+            int nalCount = chunkInfo.getNALCount();
 
             // Get NAL type
-            NALType type = chunk.getNALType();
+            NALType type = chunkInfo.getNALType();
 
             // Now build  BPP Header + Command Block
             BPP.BPPHeader header = new BPP.BPPHeader();
@@ -145,7 +145,7 @@ public class BPPSVCPacketizer implements ChunkPacketizer {
             }
 
             // Convert the ChunkInfo to a BPP.MetadataBlock
-            BPP.MetadataBlock metadataBlock = chunkInfoToMetadataBlock(chunk);
+            BPP.MetadataBlock metadataBlock = chunkInfoToMetadataBlock(chunkInfo);
 
             // and write into the packet
             bufPos = BPPPacket.writeMetadataBlock(packetBytes, bufPos, metadataBlock);
@@ -207,6 +207,7 @@ public class BPPSVCPacketizer implements ChunkPacketizer {
         mb.nalCount = new int[chunkCount];
         mb.nalNo = new int[chunkCount];
         mb.type = new byte[chunkCount];
+        mb.positions = new int[chunkCount];
 
         
         
@@ -227,6 +228,9 @@ public class BPPSVCPacketizer implements ChunkPacketizer {
 
             // significance
             mb.significance[c] = content[c].getSignificanceValue();
+
+            // position
+            mb.positions[c] = content[c].getPosition();
 
             // dropped
             mb.isDropped[c] = false;

@@ -16,6 +16,9 @@ import java.util.Optional;
  */
 public interface BPPFn  {
     
+    // Amount of bytes for running a function when the bandwidth is limited
+    public final static int ENOUGH_FOR_EVALUATION = 100;
+    
     /**
      * Process a packet, and possibly trim the contents.
      */

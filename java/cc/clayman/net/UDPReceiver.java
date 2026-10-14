@@ -134,6 +134,10 @@ public class UDPReceiver implements Runnable {
     protected void close() {
         if (! socket.isClosed()) {
             try {
+                if (Verbose.level >= 2) {
+                    System.err.println("UDPReceiver: close socket");
+                }
+            
                 eof = true;
                 socket.close();
             } catch (Exception ioe) {

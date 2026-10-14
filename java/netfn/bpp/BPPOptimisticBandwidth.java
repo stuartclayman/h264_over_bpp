@@ -13,7 +13,7 @@ import java.util.Optional;
  * A NetFn that does some BPP processing based on bandwidth
  * but allow more bytes in the first period - e.g 200ms (0.2 seconds)
  */
-public class BPPOptimisticBandwidth extends AbstractBPPFn implements BPPFn {
+public class BPPOptimisticBandwidth extends PacketRebuildBPPFn implements BPPFn {
     // The optimistic period
     float period = 0.0f;
 

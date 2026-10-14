@@ -21,7 +21,7 @@ package cc.clayman.bpp;
  *  - 22 bits (OFFi [5 bits (Chunk Offset) + 12 bits (Source Frame No) + 5 bits (Frag No)])
  *    + 14 bits (CSi) + 4 bits (SIGi) + 1 bit (OFi) + 1 bit (FFi)
  *    + 1 bit (1 = VCL / 0 = NONVCL)
- *    + 5 bits (PAD)
+ *    + 5 bits (Chunk Position)
  
     +------------------+--------------------+--------------------+-----------------+
     | BPP Block Header (32 bits)            | ChunkCount(5)| P(3)|                 *
@@ -32,7 +32,7 @@ package cc.clayman.bpp;
     +------------------+--------------------+--------------------+-----------------+
     | OFFi (14)                       | CSi (14)                        | SIGi (4) |
     +------------------+--------------------+--------------------+-----------------+
-    | O F V | P(5) *  <NEXT>                                                   |
+    | O F V | Position *  <NEXT>                                                   |
     +------------------+--------------------+--------------------+-----------------+
       ^ ^ ^
       |  \  ----------\
@@ -78,7 +78,7 @@ public class BPP {
         // Per-chunk Metadata Block - 48 bits / 6 bytes 
         //  -  22 bits (OFFi [5 bits (NAL Count) + 12 bits (NAL No) + 5 bits (Frag No)])
         //   + 14 bits (CSi) + 4 bits (SIGi) + 1 bit (OFi) + 1 bit (FFi)
-        //   +  1 bit (type: VCL/NONVCL) + 5 bits (PAD)
+        //   +  1 bit (type: VCL/NONVCL) + 5 bits (Position)
         //
         // NAL No is limited to 12 bits - max 4095 - so can wrap
         // Frag No is limited to 5 bits - max 31 - so can wrap
@@ -93,6 +93,7 @@ public class BPP {
         public boolean [] lastFragment = null;
         public boolean [] isDropped = null;
         public byte [] type = null;
+        public int [] positions = null;
     }
 
     /**
@@ -113,7 +114,7 @@ public class BPP {
         public static final int LIMITED   = 0x000;      // 000 If bandwidth is limited
         public static final int ALWAYS    = 0x001;      // 001 Always
         public static final int NEVER     = 0x002;      // 010 Never
-        public static final int LIMITEDFN  = 0x007;     // 111 If bandwidth is limited
+        public static final int LTDFUNC   = 0x007;      // 111 If bandwidth is limited
                                                         // and nothing washed, then
                                                         // run fn on the threshold value
     }

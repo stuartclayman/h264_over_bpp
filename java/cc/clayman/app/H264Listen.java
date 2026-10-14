@@ -145,7 +145,7 @@ public class H264Listen {
     }
 
     static void usage() {
-        System.err.println("H264Listen [-f [-|filename]] [-h host] [-p port]");
+        System.err.println("H264Listen [-f [-|filename]] [-h host] [-p port] [-D seconds]");
         System.exit(1);
     }
 
@@ -226,10 +226,11 @@ public class H264Listen {
 
 
         while (analyser.hasNext()) {
-            lastTime = System.currentTimeMillis();
-
+            long start = System.currentTimeMillis();
             // A NAL
             NAL nal = analyser.next();
+
+            
 
             if (nal != null) {
                 count++;
@@ -237,7 +238,14 @@ public class H264Listen {
                 // Write NAL to the outputStream
                 writeNAL(outputStream, nal);
             }
+
+            long now = System.currentTimeMillis();
             
+            if (Verbose.level >= 2) {
+                System.err.println("NAL after " + ((float)(start - lastTime)/1000) + " seconds");
+            }
+                    
+            lastTime = now; 
         }
 
         if (outputStream != null) {
@@ -304,7 +312,7 @@ public class H264Listen {
                 if (count != 0 && ((thisTime - lastTime) / 1000) >= timeOut) {
                     // no recv after 5 secs
                     if (Verbose.level >= 2) {
-                        System.err.println("stopping");
+                        System.err.println("No NAL after " + timeOut + " seconds - stopping");
                     }
                     
                     System.out.flush();

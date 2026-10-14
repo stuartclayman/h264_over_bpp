@@ -39,6 +39,11 @@ public interface ChunkInfo {
     public ChunkContent addPayload(ByteBuffer buf) throws UnsupportedOperationException;
 
     /**
+     * Add some data to the payload chunk: n
+     */
+    public ChunkContent addPayload(ByteBuffer buf, int n) throws UnsupportedOperationException;
+
+    /**
      * Get the sequence number in this Chunk
      */
     public int getSequenceNumber();

@@ -109,12 +109,39 @@ public class BPPForward {
 
                 } else if (arg0.startsWith("-B")) {
                     // BPP Bandwidth evaluators
-                    
+
                     if (arg0.equals("-Bb")) {
                         // Use Basic Bandwidth utilization evaluator
                         bppFn = new BPPBasicBandwidth(bandwidthBits);
 
                         System.err.println("BPPBasicBandwidth " + bandwidthBits);
+
+                    } else if (arg0.equals("-Br")) {
+                        // Use Basic Bandwidth utilization evaluator
+                        // This uses Packet rebuild. Same as -Bb
+                        bppFn = new BPPBasicBandwidth(bandwidthBits);
+
+                        System.err.println("BPPBasicBandwidth " + bandwidthBits);
+
+                    } else if (arg0.equals("-BR")) {
+                        // Use the Packet Rebuild BPPFn
+                        // Has extra rules based on bandwidth
+                        bppFn = new PacketRebuildBPPFn(bandwidthBits);
+
+                        System.err.println("PacketRebuildBPPFn " + bandwidthBits);
+
+                    } else if (arg0.equals("-Bc")) {
+                        // Use the Packet Cut BPPFn
+                        bppFn = new BPPCutFn(bandwidthBits);
+
+                        System.err.println("PacketCutBPPFn " + bandwidthBits);
+
+                    } else if (arg0.equals("-BC")) {
+                        // Use the Packet Cut BPPFn
+                        // Has extra rules based on bandwidth
+                        bppFn = new PacketCutBPPFn(bandwidthBits);
+
+                        System.err.println("PacketCutBPPFn " + bandwidthBits);
 
                     } else if (arg0.startsWith("-Bn")) {
                         // Use No Trim Bandwidth utilization evaluator
@@ -182,8 +209,31 @@ public class BPPForward {
 
                         
 
+                    } else {
+                        usage();
                     }
-                    
+
+                } else if (arg0.startsWith("-M")) {
+                    // Messages
+                    if (arg0.equals("-Md")) {
+                        // Msg for datagramProcess()
+                        // Prints IN: OUT: etc
+                        Message.status |= Message.PROCESS_DATAGRAM;
+                        
+                    } else if (arg0.equals("-Mp")) {
+                        // Msg for BPPFn.process()
+                        // Prints data volume for each packet
+                        Message.status |= Message.BPPFN_PROCESS;
+                        
+                    } else if (arg0.equals("-Ms")) {
+                        // Msg for BPPFn.process() 
+                        // Prints data volume for each packet
+                        // but 1 per second
+                        Message.status |= Message.BPPFN_SECOND;
+                    } else {
+                        System.out.println("Message option error: " + arg0);
+                    }
+
                 } else if (arg0.startsWith("-v")) {
                     if (arg0.equals("-v")) {
                         Verbose.level = 1;
@@ -213,7 +263,7 @@ public class BPPForward {
             System.err.println("Bandwidth in bits: " + bandwidthBits);
             System.err.println("Packets per second: " + packetsPerSecond);
         }
-        
+
         try {
             // Create the forwarder
             forwarder = new BPPForwarder(udpPort, forwardHost, forwardPort, bandwidthBits);
