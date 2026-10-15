@@ -14,6 +14,8 @@ import java.util.Collections;
  * This holds info about the significance model relationships
  * for 3 layers and BPP
  *
+ * This has low significance value for temporal layer T0
+ * - the I-frame.
  */
 public class SignificanceModel3LayersMod1 implements SignificanceModel {
     private static final Map<SignificanceModel.Tuple, Integer> significanceMap = initMap();

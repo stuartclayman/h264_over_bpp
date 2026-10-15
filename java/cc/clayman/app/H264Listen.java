@@ -35,7 +35,7 @@ public class H264Listen {
     static int total = 0;
 
     // No of VCLs / layers per frame
-    static int NO_OF_VCLS = 3;
+    static int nalsPerFrame = 3;
 
     // keep time
     static long startTime = 0;
@@ -98,12 +98,12 @@ public class H264Listen {
                     String val = args[argc];
                     udpPort = Integer.parseInt(val);
 
-                } else if (arg0.equals("-l")) {
+                } else if (arg0.equals("-N")) {
                     // VLCs / layers
                     argc++;
 
                     String val = args[argc];
-                    NO_OF_VCLS = Integer.parseInt(val);
+                    nalsPerFrame = Integer.parseInt(val);
 
                 } else if (arg0.equals("-D")) {
                     // no traffic end timer duration
@@ -134,7 +134,7 @@ public class H264Listen {
 
         if (Verbose.level >= 2) {
             System.err.println("Listen on port: " + udpPort);
-            System.err.println("Layers: " + NO_OF_VCLS);
+            System.err.println("NALs per frame: " + nalsPerFrame);
         }
             
         try {
@@ -145,7 +145,7 @@ public class H264Listen {
     }
 
     static void usage() {
-        System.err.println("H264Listen [-f [-|filename]] [-h host] [-p port] [-D seconds]");
+        System.err.println("H264Listen [-f [-|filename]] [-h host] [-p port] [-N layers] [-D seconds]");
         System.exit(1);
     }
 
@@ -175,7 +175,7 @@ public class H264Listen {
         streamer = new BufferingUDPChunkStreamer(receiver, new BPPSVCDepacketizer());
         // and the MultiNALRebuilder
         // which takes a collection of chunks and rebuild a stream on NALs
-        MultiNALRebuilder rebuilder = new MultiNALRebuilder(streamer, NO_OF_VCLS);
+        MultiNALRebuilder rebuilder = new MultiNALRebuilder(streamer, nalsPerFrame);
 
         // Setup rebuilder printer
         if (Verbose.level >= 1) {
@@ -183,7 +183,7 @@ public class H264Listen {
         }
 
         // plus the MissingNALAnalyser which does NAL dependency analysis
-        analyser = new MissingNALAnalyser(rebuilder, NO_OF_VCLS);
+        analyser = new MissingNALAnalyser(rebuilder, nalsPerFrame);
         analyser.start();
 
 

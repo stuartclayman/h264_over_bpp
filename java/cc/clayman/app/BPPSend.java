@@ -46,7 +46,7 @@ public class BPPSend {
 
     static ChunkPacketizer packetizer = null;
     static ChunkSizeCalculator calculator = null;    // Default is EvenSplit in MultiNALProcessor
-    
+    static SignificanceModel significanceModel = null;
 
     public static void main(String[] args) {
         if (args.length == 0) {
@@ -77,6 +77,10 @@ public class BPPSend {
                     String val = args[argc];
                     udpPort = Integer.parseInt(val);
 
+                } else if (arg0.startsWith("-R")) {
+                    // reorder chunks
+                    reorderBySignificance = true;
+                    
                 } else if (arg0.equals("-z")) {            
                     // packet size
                     argc++;
@@ -213,10 +217,34 @@ public class BPPSend {
                         // Unknown packing option
                     }
 
-                } else if (arg0.startsWith("-R")) {
-                    // reorder chunks
-                    reorderBySignificance = true;
-                    
+                } else if (arg0.startsWith("-S")) {
+
+                    if (arg0.equals("-S3")) {
+                        // First 3 layer significance strategy
+                        significanceModel = new SignificanceModel3Layers();
+
+                    } else if (arg0.equals("-S3m1")) {
+                        // Modified 3 layer significance strategy
+                        // This has low significance value for temporal layer T0
+                        //  the I-frame.
+                        significanceModel = new SignificanceModel3LayersMod1();
+
+                    } else if (arg0.equals("-S3m2")) {
+                        // Modified 3 layer significance strategy
+                        // This is a wierd model which has layer 1 with less
+                        // significance than layer 2.
+                        // It is used for chunk reordering testing purposes.
+                        significanceModel = new SignificanceModel3LayersMod2();
+
+                    } else if (arg0.equals("-S4r1")) {
+                        // First 4 layer significance strategy
+                        significanceModel = new SignificanceModel4LayersReza1();
+
+                    } else {
+                        // Unknown significance model
+                    }
+
+
                 } else if (arg0.startsWith("-v")) {
                     if (arg0.equals("-v")) {
                         Verbose.level = 1;
@@ -258,7 +286,7 @@ public class BPPSend {
     }
 
     static void usage() {
-        System.err.println("BPPSend [-f [-|filename]] [-h host]  [-p port] [-s sleep|-r rate|-a] [-z packetSize] [-N nals] [-B bandwidth (Kbps)] [-T threshold] [-Pe|-Pd|-Pi|-Pf]");
+        System.err.println("BPPSend [-f [-|filename]] [-h host]  [-p port] [-R] [-s sleep|-r rate|-a] [-z packetSize] [-N layers] [-B bandwidth (Kbps)] [-T threshold] [-S3|-S3m1|-S4r1] [-Pe|-Pd|-Pi|-Pf] [-Cl|-Ca|-Cn|-Ca]");
         System.exit(1);
     }
 
@@ -306,12 +334,17 @@ public class BPPSend {
         }
 
         
-        // MultiNALProcessor - payload size from packetizer, 3 chunks
+        // MultiNALProcessor - payload size from packetizer, no of nals per frame 
         MultiNALProcessor nalProcessor = new MultiNALProcessor(str, packetizer.getPayloadSize(), nalsPerFrame);
 
         // did user specify a ChunkSizeCalculator
         if (calculator != null) {
             nalProcessor.setChunkSizeCalculator(calculator);
+        }
+
+        // did user specify a SignificanceModel4
+        if (significanceModel != null) {
+            nalProcessor.setSignificanceModel(significanceModel);
         }
 
         // Setup nalProcessor printer

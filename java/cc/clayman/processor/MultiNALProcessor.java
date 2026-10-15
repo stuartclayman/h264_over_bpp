@@ -37,15 +37,16 @@ public class MultiNALProcessor implements NALProcessor, Iterator<ChunkInfo> {
 
     // Is previous NAL NONVCL
     boolean prevIsNonVCL  = true;
+
     // Number of VCL NALs seen so far
     int vclCount = 0;
-    
     
     // How many read in this time
     int readIn = 0;
 
     // The offset into the NAL payload
     int nalOffset = 0;
+
     // The NAL buffer
     ByteBuffer nalBuffer = null;
 
@@ -60,8 +61,8 @@ public class MultiNALProcessor implements NALProcessor, Iterator<ChunkInfo> {
     // The H264InputStream has hit EOF, so no more to do
     boolean finished = false;
 
-    // No of VCLs to expect
-    int noOfVCLs = 1;
+    // No of NALs / layers / VCLs to expect -- comes from constructor arg
+    int noOfVCLs = 0;
 
     // The NALs of the VCLs to process
     NAL[] vcls = null;
@@ -74,10 +75,10 @@ public class MultiNALProcessor implements NALProcessor, Iterator<ChunkInfo> {
 
     // TemporalLayerModel
     TemporalLayerModel temporalLayerModel = new TemporalLayerModelGOB16();
+    
     // SignificanceModel
-    SignificanceModel significanceModel = new SignificanceModel3LayersMod2();
-    // Layers
-    static final Layer[] layerModel = { Layer.L0, Layer.L1, Layer.L2, Layer.L3,  Layer.L4 };
+    // Default is SignificanceModel3LayersMod1
+    SignificanceModel significanceModel = new SignificanceModel3LayersMod1();
 
     /**
      * Construct a MultiNALProcessor
@@ -92,7 +93,7 @@ public class MultiNALProcessor implements NALProcessor, Iterator<ChunkInfo> {
         fragments = new int[noOfVCLs];
         lastFrag = new boolean[noOfVCLs];
         clearFragmentData();
-        chunkSizeCalculator = new EvenSplit();   // DynamicSplit(); // 
+        chunkSizeCalculator = new EvenSplit(); 
     }
     
     /**
@@ -120,17 +121,24 @@ public class MultiNALProcessor implements NALProcessor, Iterator<ChunkInfo> {
     }
     
     /**
-     * Get the current calculator for the chunk sizes
-     */
-    public int getChunkSizeCalculator() {
-        return contentSize;
-    }
-    
-    /**
-     * Get the current calculator for the chunk sizes
+     * Set the current calculator for the chunk sizes
      */
     public NALProcessor setChunkSizeCalculator(ChunkSizeCalculator calc) {
         chunkSizeCalculator = calc;
+
+        System.err.printf("MultiNALProcessor: chunkSizeCalculator = %s\n", calc.getClass().getName());
+        
+        return this;
+    }
+    
+    /**
+     * Set the current significance model
+     */
+    public NALProcessor setSignificanceModel(SignificanceModel model) {
+        significanceModel = model;
+
+        System.err.printf("MultiNALProcessor: significanceModel = %s\n", model.getClass().getName());
+        
         return this;
     }
     
@@ -343,7 +351,8 @@ public class MultiNALProcessor implements NALProcessor, Iterator<ChunkInfo> {
                     TemporalLayerModel.Tuple<Frame, Temporal, Integer> frameInfo = temporalLayerModel.getLayerInfo(vclCount);
                     
                     // collect significance from TemporalLayerModel and Layer No
-                    int significance = significanceModel.getSignificanceValue(frameInfo.frame, frameInfo.temporal, Layer.get(i)); // layerModel[i]);
+                    int significance = significanceModel.getSignificanceValue(frameInfo.frame, frameInfo.temporal, Layer.get(i));
+
                     // put significance into ChunkContent
                     content.setSignificanceValue(significance);
 

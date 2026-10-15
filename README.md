@@ -82,12 +82,14 @@ H264Listen [-f filename] [-p port] [-D seconds]
 _Listen for BPP packets and construct an H264 file_  
 **-f** filename Send data to file.  Use - for stdout.  Default: stdout  
 **-p** port Listen port.  Default: 6799  
+**-N** layers The number of NALs / layers per frame to listen for. Default: 3  
 **-D** seconds. Delay for no packet arrival as end of stream. Default: 5  
 
 
 `java cc.clayman.app.BPPSend -f filename`
 
-BPPSend [-f filename] [-h host] [-p port] [-R] [-s sleep|-r rate] [-z packetSize] [-N nals] [-B bandwidth] [-T threshold] [-Pe|-Pd|-Pi|-Pf] [-Cl|-Ca|-Cn|-Ca]  
+BPPSend [-f filename] [-h host] [-p port] [-R] [-s sleep|-r rate] [-z
+packetSize] [-N layers] [-B bandwidth (Kbps)] [-T threshold] [-S3|-S3m1|-S4r1] [-Pe|-Pd|-Pi|-Pf] [-Cl|-Ca|-Cn|-Ca]  
 _Send a video file over BPP_  
 **-f** filename Read data from file.  Use - for stdin.  Default: stdin  
 **-h** host Send host.  Default: localhost  
@@ -98,7 +100,7 @@ _Send a video file over BPP_
 **-s** inter packet sleep (in milliseconds).  Default: 7  
 **-a** Do adaptive sleep.  Based on chunk size and packet size.
 Default: false  
-**-N** NALs per frame.  Default: 3  
+**-N** layers. Number of NALs / layers per frame.  Default: 3  
 **-B** Bandwidth of the video, in kpbs.  Default: 1094  
 **-T** Threshold for significance values.  Default: 5  
 **-c** cols. No of columns for output.  Default: 80  
@@ -110,7 +112,9 @@ Default: false
 **-Ca** Condition: Always try trimming  
 **-Cn** Condition: Never try trimming  
 **-Ca** Condition: Always try trimming  
-
+**-S3** SignificanceModel: choose SignificanceModel3Layers  
+**-S3m1** SignificanceModel: choose SignificanceModel3LayersMod1 (the default)  
+**-S4r1** SignificanceModel: choose SignificanceModel4LayersReza1  
 
 `java cc.clayman.app.UDPListen -p 6798`
 

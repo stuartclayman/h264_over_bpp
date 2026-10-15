@@ -215,7 +215,10 @@ public class BPPPacket {
 
             // update counts
             currentContentTotal += csI;
-            System.err.printf("  Check: Current: %d  Packet: %d\n", currentContentTotal, packetContent);
+
+            if (Verbose.level >= 2) {
+                System.err.printf("  Check: Current: %d  Packet: %d\n", currentContentTotal, packetContent);
+            }
 
             // now unpack values from OFFi
             // [5 bits (NAL Count) + 12 bits (NAL No) + 5 bits (Frag No)])
